@@ -7,6 +7,7 @@ import TaskEntry from "./components/TaskEntry";
 import Notebook from "./components/Notebook";
 import AdminPanel from "./components/AdminPanel";
 import TaskModal from "./components/TaskModal";
+import Login from "./components/Login";
 
 /**
  * SIMULATED USER CONTEXT
@@ -18,6 +19,9 @@ const SIMULATED_USER = {
 };
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("wf_authenticated") === "true";
+  });
   const [currentView, setCurrentView] = useState("dashboard");
   const [userRole, setUserRole] = useState("Admin");
   const [actualRole, setActualRole] = useState("Admin");
@@ -98,6 +102,13 @@ export default function App() {
   function handleContextMenu(e, taskId) {
     e.preventDefault();
     setContextMenu({ visible: true, x: e.pageX, y: e.pageY, taskId });
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLogin={() => {
+      localStorage.setItem("wf_authenticated", "true");
+      setIsAuthenticated(true);
+    }} />;
   }
 
   if (loading) {
