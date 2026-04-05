@@ -10,6 +10,7 @@ import TaskModal from "./components/TaskModal";
 import Login from "./components/Login";
 import SetPassword from "./components/SetPassword";
 import CustomModal from "./components/CustomModal";
+import IntroAnimation from "./components/IntroAnimation";
 
 export default function App() {
   // --- Auth state ---
@@ -38,6 +39,10 @@ export default function App() {
   const [modalTaskId, setModalTaskId] = useState(null);
   const [modalEditMode, setModalEditMode] = useState(false);
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, taskId: null });
+  const [showIntro, setShowIntro] = useState(() => {
+    // Show intro on auto-login (user didn't log out)
+    return localStorage.getItem("wf_authenticated") === "true";
+  });
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
     title: "",
@@ -131,6 +136,7 @@ export default function App() {
         localStorage.setItem("wf_authenticated", "true");
         localStorage.setItem("wf_email", lowerEmail);
         setLoading(true);
+        setShowIntro(true);
         setAuthStage("authenticated");
       } else {
         setLoginError("Incorrect password.");
@@ -172,6 +178,7 @@ export default function App() {
       localStorage.setItem("wf_authenticated", "true");
       localStorage.setItem("wf_email", lowerEmail);
       setLoading(true);
+      setShowIntro(true);
       setAuthStage("authenticated");
     } else {
       setLoginError("Incorrect password.");
@@ -186,6 +193,7 @@ export default function App() {
     localStorage.setItem("wf_authenticated", "true");
     localStorage.setItem("wf_email", pendingEmail);
     setLoading(true);
+    setShowIntro(true);
     setAuthStage("authenticated");
   }
 
@@ -471,6 +479,9 @@ export default function App() {
         onConfirm={modalConfig.onConfirm}
         onCancel={modalConfig.onCancel}
       />
+
+      {/* Intro Animation Overlay */}
+      {showIntro && <IntroAnimation onDone={() => setShowIntro(false)} />}
     </>
   );
 }
