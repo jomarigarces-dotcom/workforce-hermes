@@ -43,6 +43,25 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
   }
 
   const displayTasks = (Array.isArray(tasks) && tasks.length > 0) ? tasks : lastKnownTasks;
+
+  const columns = ["todo", "pending", "development", "testing", "done", "scrapyard"];
+  const columnLabels = {
+    todo: "To Do",
+    pending: "Pending",
+    development: "In Development",
+    testing: "In Testing",
+    done: "Done",
+    scrapyard: "Scrapyard",
+  };
+  const columnClasses = {
+    todo: "col-todo",
+    pending: "col-pending",
+    development: "col-dev",
+    testing: "col-test",
+    done: "col-done",
+    scrapyard: "col-scrap",
+  };
+
   const sorted = [...(Array.isArray(displayTasks) ? displayTasks : [])].sort((a, b) => b.lastUpdated - a.lastUpdated);
   let filtered = sorted;
   if (userRole === "Programmer") {
