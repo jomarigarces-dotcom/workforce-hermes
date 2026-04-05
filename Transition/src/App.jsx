@@ -34,11 +34,8 @@ export default function App() {
 
   // Resolve user context once staff loads
   useEffect(() => {
-    // If not authenticated, skip loading screen entirely
-    if (!isAuthenticated) {
-      setLoading(false);
-      return;
-    }
+    // If not authenticated, the Login component renders instead — nothing to do here
+    if (!isAuthenticated) return;
 
     const email = localStorage.getItem("wf_email") || "";
     if (!email) {
@@ -133,6 +130,8 @@ export default function App() {
     return <Login onLogin={(email) => {
       localStorage.setItem("wf_authenticated", "true");
       localStorage.setItem("wf_email", email);
+      setHasAccess(false);   // reset in case it was set from a previous session
+      setLoading(true);      // show spinner while we wait for Convex staff lookup
       setIsAuthenticated(true);
     }} />;
   }
