@@ -127,7 +127,7 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
                   Assigned to:
                   <select id="edit-task-assignee" className="form-input" style={{ flex: 1, padding: "4px 8px", marginLeft: 8 }} defaultValue={task.assignee}>
                     <option value="">Unassigned</option>
-                    {staff.map((s) => (
+                    {(Array.isArray(staff) ? staff : []).map((s) => (
                       <option key={s.email} value={s.name}>{s.name}</option>
                     ))}
                   </select>

@@ -45,7 +45,7 @@ export default function Notebook({ userRole, userName }) {
           {/* Ideas Feed */}
           <div className="section-card">
             <h2 style={{ fontWeight: 900, marginTop: 0, textTransform: "uppercase", marginBottom: 30 }}>Ideas Feed</h2>
-            {(ideas || []).map((i) => {
+            {(Array.isArray(ideas) ? ideas : []).map((i) => {
               let takerBadge;
               let actions = [];
 
@@ -116,7 +116,7 @@ export default function Notebook({ userRole, userName }) {
                 </div>
               );
             })}
-            {(ideas || []).length === 0 && (
+            {(Array.isArray(ideas) ? ideas : []).length === 0 && (
               <p style={{ color: "#94a3b8", fontStyle: "italic", textAlign: "center" }}>No ideas yet. Add one!</p>
             )}
           </div>

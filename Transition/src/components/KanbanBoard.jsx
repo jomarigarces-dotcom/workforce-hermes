@@ -51,7 +51,7 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
   };
 
   // Sort and filter
-  const sorted = [...(tasks || [])].sort((a, b) => b.lastUpdated - a.lastUpdated);
+  const sorted = [...(Array.isArray(tasks) ? tasks : [])].sort((a, b) => b.lastUpdated - a.lastUpdated);
   let filtered = sorted;
   if (userRole === "Programmer") {
     filtered = sorted.filter(

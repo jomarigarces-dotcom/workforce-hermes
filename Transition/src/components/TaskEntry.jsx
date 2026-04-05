@@ -28,7 +28,7 @@ export default function TaskEntry({ userRole, userName, onCreated, showModal }) 
         notes: [],
         lastUpdated: Date.now(),
       };
-      localStore.setQuery(api.tasks.getTasks, undefined, [...(prevTasks || []), newTask]);
+      localStore.setQuery(api.tasks.getTasks, undefined, [...(Array.isArray(prevTasks) ? prevTasks : []), newTask]);
     }
   });
 
