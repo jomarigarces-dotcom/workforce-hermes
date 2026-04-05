@@ -40,11 +40,65 @@ export const addStaff = mutation({
     role: v.string(),
   },
   handler: async (ctx, args) => {
+    // Don't add duplicates
+    const existing = await ctx.db
+      .query("staff")
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+      .first();
+    if (existing) return;
     await ctx.db.insert("staff", {
       name: args.name,
-      email: args.email,
+      email: args.email.toLowerCase(),
       role: args.role,
     });
+  },
+});
+
+export const getStaffByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    // Check DB first
+    const dbUser = await ctx.db
+      .query("staff")
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+      .first();
+    if (dbUser) return dbUser;
+
+    // Fall back to INITIAL_STAFF
+    const initial = INITIAL_STAFF.find(
+      (s) => s.email.toLowerCase() === args.email.toLowerCase()
+    );
+    return initial ? { ...initial, _id: null, password: undefined } : null;
+  },
+});
+
+export const setPassword = mutation({
+  args: {
+    email: v.string(),
+    password: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("staff")
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { password: args.password });
+    } else {
+      // User is from INITIAL_STAFF but not yet in DB — create their DB record
+      const initial = INITIAL_STAFF.find(
+        (s) => s.email.toLowerCase() === args.email.toLowerCase()
+      );
+      if (initial) {
+        await ctx.db.insert("staff", {
+          name: initial.name,
+          email: initial.email.toLowerCase(),
+          role: initial.role,
+          password: args.password,
+        });
+      }
+    }
   },
 });
 

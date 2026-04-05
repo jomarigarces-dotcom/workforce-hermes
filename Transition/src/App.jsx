@@ -8,115 +8,191 @@ import Notebook from "./components/Notebook";
 import AdminPanel from "./components/AdminPanel";
 import TaskModal from "./components/TaskModal";
 import Login from "./components/Login";
-
-// Replaced simulated context with dynamic authentication
+import SetPassword from "./components/SetPassword";
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem("wf_authenticated") === "true";
+  // --- Auth state ---
+  const [authStage, setAuthStage] = useState(() => {
+    // "login" | "set-password" | "authenticated" | "denied"
+    if (localStorage.getItem("wf_authenticated") === "true") {
+      const email = localStorage.getItem("wf_email");
+      if (!email) {
+        localStorage.clear();
+        return "login";
+      }
+      return "authenticated";
+    }
+    return "login";
   });
+  const [pendingEmail, setPendingEmail] = useState(""); // used during set-password flow
+  const [loginError, setLoginError] = useState("");     // error passed back to Login
+
+  // --- App state ---
   const [currentView, setCurrentView] = useState("dashboard");
   const [userRole, setUserRole] = useState("Admin");
   const [actualRole, setActualRole] = useState("Admin");
   const [userName, setUserName] = useState("");
   const [isMainAdmin, setIsMainAdmin] = useState(false);
-  const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [modalTaskId, setModalTaskId] = useState(null);
   const [modalEditMode, setModalEditMode] = useState(false);
-
-  // Context menu state
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, taskId: null });
 
-  // Fetch staff for user context resolution
+  // --- Convex ---
   const staff = useQuery(api.staff.getStaff);
   const addStaffMutation = useMutation(api.staff.addStaff);
+  const setPasswordMutation = useMutation(api.staff.setPassword);
 
-  // Resolve user context once staff loads
+  // --- Resolve user once authenticated and staff loaded ---
   useEffect(() => {
-    // If not authenticated, the Login component renders instead — nothing to do here
-    if (!isAuthenticated) return;
-
-    const email = localStorage.getItem("wf_email") || "";
-    if (!email) {
-      // Stale session — no email stored. Force re-login.
-      localStorage.removeItem("wf_authenticated");
-      localStorage.removeItem("wf_email");
-      setIsAuthenticated(false);
+    if (authStage !== "authenticated") {
       setLoading(false);
       return;
     }
 
-    // Wait for staff to finish loading from Convex
-    if (staff === undefined) return;
+    if (staff === undefined) return; // still loading from Convex
 
-    const user = staff.find(
-      (s) => (s.email || "").toLowerCase() === email.toLowerCase()
-    );
-    const mainAdmin = email.toLowerCase() === "wmt@ececontactcenters.com";
-
-    if (user || mainAdmin) {
-      setHasAccess(true);
-      setUserName(user ? user.name : "Main Admin");
-      setIsMainAdmin(mainAdmin);
-      const role = user ? user.role : "Admin";
-      setActualRole(role);
-      setUserRole(mainAdmin ? "Admin" : role);
-
-      if (role === "Programmer") {
-        setCurrentView("kanban");
-      }
-    } else {
-      // Auto-register new users with "Programmer" role
-      const defaultName = email.split("@")[0];
-      setHasAccess(true);
-      setUserName(defaultName);
-      setActualRole("Programmer");
-      setUserRole("Programmer");
-      setCurrentView("kanban");
-      
-      // Ensure we only register them once in Convex
-      if (!sessionStorage.getItem(`registered_${email}`)) {
-        addStaffMutation({
-          name: defaultName,
-          email: email,
-          role: "Programmer"
-        });
-        sessionStorage.setItem(`registered_${email}`, "true");
-      }
+    const email = localStorage.getItem("wf_email") || "";
+    if (!email) {
+      localStorage.removeItem("wf_authenticated");
+      setAuthStage("login");
+      setLoading(false);
+      return;
     }
 
+    const mainAdmin = email === "wmt@ececontactcenters.com";
+    if (mainAdmin) {
+      setUserName("Main Admin");
+      setIsMainAdmin(true);
+      setActualRole("Admin");
+      setUserRole("Admin");
+      setLoading(false);
+      return;
+    }
+
+    const user = staff.find((s) => (s.email || "").toLowerCase() === email);
+    if (user) {
+      setUserName(user.name);
+      setActualRole(user.role);
+      setUserRole(user.role);
+      if (user.role === "Programmer") setCurrentView("kanban");
+    }
     setLoading(false);
-  }, [staff, isAuthenticated]);
+  }, [staff, authStage]);
 
-  // Lock body scroll when login or access denied is showing
+  // --- Body scroll lock ---
   useEffect(() => {
-    if (!isAuthenticated || !hasAccess) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    const locked = authStage !== "authenticated";
+    document.body.style.overflow = locked ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [isAuthenticated, hasAccess]);
+  }, [authStage]);
 
-  // Add/remove role class on body
+  // --- Role class on body ---
   useEffect(() => {
     document.body.classList.remove("role-admin", "role-programmer");
     document.body.classList.add("role-" + userRole.toLowerCase());
   }, [userRole]);
 
-  // Close context menu on click
+  // --- Context menu close ---
   useEffect(() => {
     const handler = () => setContextMenu((prev) => ({ ...prev, visible: false }));
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, []);
 
+  // -------------------------------------------------------
+  // Login handler — this is called when the user submits
+  // the login form with their email and password.
+  // -------------------------------------------------------
+  async function handleLogin(email, password) {
+    setLoginError("");
+    const lowerEmail = email.toLowerCase();
+
+    // Must wait for staff to be loaded
+    if (staff === undefined) {
+      setLoginError("System is still loading. Please wait a moment and try again.");
+      return;
+    }
+
+    const isMainAdmin = lowerEmail === "wmt@ececontactcenters.com";
+
+    if (isMainAdmin) {
+      if (password === "admin") {
+        localStorage.setItem("wf_authenticated", "true");
+        localStorage.setItem("wf_email", lowerEmail);
+        setLoading(true);
+        setAuthStage("authenticated");
+      } else {
+        setLoginError("Incorrect password.");
+      }
+      return;
+    }
+
+    const user = staff.find((s) => (s.email || "").toLowerCase() === lowerEmail);
+
+    if (!user) {
+      // Not in staff list — must register with "admin"
+      if (password === "admin") {
+        const defaultName = lowerEmail.split("@")[0];
+        addStaffMutation({ name: defaultName, email: lowerEmail, role: "Programmer" });
+        // Show access denied — admin must approve them
+        localStorage.setItem("wf_authenticated", "true");
+        localStorage.setItem("wf_email", lowerEmail);
+        setAuthStage("denied");
+      } else {
+        setLoginError("You are not registered. Use the default password to register.");
+      }
+      return;
+    }
+
+    // User IS in staff list
+    if (!user.password) {
+      // No personal password set: only "admin" is accepted  → go to set-password
+      if (password === "admin") {
+        setPendingEmail(lowerEmail);
+        setAuthStage("set-password");
+      } else {
+        setLoginError("Incorrect password.");
+      }
+      return;
+    }
+
+    // User has a personal password
+    if (password === user.password) {
+      localStorage.setItem("wf_authenticated", "true");
+      localStorage.setItem("wf_email", lowerEmail);
+      setLoading(true);
+      setAuthStage("authenticated");
+    } else {
+      setLoginError("Incorrect password.");
+    }
+  }
+
+  // -------------------------------------------------------
+  // Set-password handler
+  // -------------------------------------------------------
+  async function handleSetPassword(newPassword) {
+    await setPasswordMutation({ email: pendingEmail, password: newPassword });
+    localStorage.setItem("wf_authenticated", "true");
+    localStorage.setItem("wf_email", pendingEmail);
+    setLoading(true);
+    setAuthStage("authenticated");
+  }
+
+  function logout() {
+    localStorage.removeItem("wf_authenticated");
+    localStorage.removeItem("wf_email");
+    setAuthStage("login");
+    setLoading(true);
+    setUserName("");
+    setActualRole("Admin");
+    setUserRole("Admin");
+    setCurrentView("dashboard");
+  }
+
   function changeRole(role) {
     setUserRole(role);
-    if (role === "Programmer") {
-      setCurrentView("kanban");
-    }
+    if (role === "Programmer") setCurrentView("kanban");
   }
 
   function switchView(viewId) {
@@ -140,14 +216,51 @@ export default function App() {
     setContextMenu({ visible: true, x: e.pageX, y: e.pageY, taskId });
   }
 
-  if (!isAuthenticated) {
-    return <Login onLogin={(email) => {
-      localStorage.setItem("wf_authenticated", "true");
-      localStorage.setItem("wf_email", email);
-      setHasAccess(false);   // reset in case it was set from a previous session
-      setLoading(true);      // show spinner while we wait for Convex staff lookup
-      setIsAuthenticated(true);
-    }} />;
+  // -------------------------------------------------------
+  // Render stages
+  // -------------------------------------------------------
+  if (authStage === "login") {
+    return <Login onLogin={handleLogin} externalError={loginError} />;
+  }
+
+  if (authStage === "set-password") {
+    return <SetPassword email={pendingEmail} onSet={handleSetPassword} />;
+  }
+
+  if (authStage === "denied") {
+    return (
+      <div className="login-container">
+        <div className="header-box" style={{ marginBottom: 30 }}>
+          <img src="https://i.imgur.com/BRd5lrB.png" alt="ECE Logo" className="header-logo" />
+          <div className="header-text-content">
+            <h1>WORKFORCE HERMES</h1>
+            <p>Workforce Programming Project Database</p>
+          </div>
+          <img src="https://i.imgur.com/ycmU6oP.png" alt="WFM Logo" className="header-logo" />
+        </div>
+        <div style={{ background: "white", padding: 40, borderRadius: 24, boxShadow: "0 10px 25px rgba(0,0,0,0.1)", maxWidth: 420, textAlign: "center" }}>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" style={{ marginBottom: 20 }}>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <h2 style={{ color: "#1e293b", marginBottom: 10 }}>Registration Pending</h2>
+          <p style={{ color: "#64748b", lineHeight: 1.6 }}>
+            Your email has been registered. Please wait for an administrator to approve your access.
+          </p>
+          <p style={{ marginTop: 15, fontWeight: 700, color: "#4355f1", fontSize: "0.85rem" }}>
+            {localStorage.getItem("wf_email")}
+          </p>
+          <button
+            className="btn-secondary"
+            style={{ marginTop: 25, padding: "10px 24px", background: "#ef4444" }}
+            onClick={logout}
+          >
+            Back to Login
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (loading) {
@@ -159,33 +272,9 @@ export default function App() {
     );
   }
 
-  if (!hasAccess) {
-    return (
-      <div className="no-access-container">
-        <div className="header-box" style={{ marginBottom: 30 }}>
-          <img src="https://i.imgur.com/BRd5lrB.png" alt="ECE Logo" className="header-logo" />
-          <div className="header-text-content">
-            <h1>WORKFORCE HERMES</h1>
-            <p>Workforce Programming Project Database</p>
-          </div>
-          <img src="https://i.imgur.com/ycmU6oP.png" alt="WFM Logo" className="header-logo" />
-        </div>
-        <div style={{ background: "white", padding: 40, borderRadius: 24, boxShadow: "0 10px 25px rgba(0,0,0,0.1)", maxWidth: 400 }}>
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" style={{ marginBottom: 20 }}>
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <h2 style={{ color: "#1e293b", marginBottom: 10 }}>Access Denied</h2>
-          <p style={{ color: "#64748b", lineHeight: 1.6 }}>
-            You do not have access to this site. Please contact the administrator.
-          </p>
-          <p style={{ marginTop: 20, fontWeight: 700, color: "#1e293b" }}>{localStorage.getItem("wf_email")}</p>
-        </div>
-      </div>
-    );
-  }
-
+  // -------------------------------------------------------
+  // Main app
+  // -------------------------------------------------------
   return (
     <>
       {/* Header */}
@@ -214,23 +303,17 @@ export default function App() {
                 </select>
               )}
             </div>
-            <button 
-              className="btn-secondary" 
+            <button
+              className="btn-secondary"
               style={{ padding: "8px 15px", fontSize: "0.75rem", background: "#ef4444", textTransform: "uppercase" }}
-              onClick={() => {
-                localStorage.removeItem("wf_authenticated");
-                localStorage.removeItem("wf_email");
-                setIsAuthenticated(false);
-                setHasAccess(false);
-                setCurrentView("dashboard");
-              }}
+              onClick={logout}
             >
               LOGOUT
             </button>
           </div>
         </div>
         <div className="nav-bar">
-          <div className="nav-label">NAVIGATION & QUICK ACTIONS</div>
+          <div className="nav-label">NAVIGATION &amp; QUICK ACTIONS</div>
           <div className="nav-links">
             {userRole === "Admin" && (
               <div

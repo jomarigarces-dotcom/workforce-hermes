@@ -1,23 +1,21 @@
 import { useState } from "react";
 
-export default function Login({ onLogin, externalError = "" }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export default function SetPassword({ email, onSet }) {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
-
-  const displayError = externalError || error;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!email.trim() || !email.includes("@")) {
-      setError("Please enter a valid email address.");
+    if (newPassword.length < 4) {
+      setError("Password must be at least 4 characters.");
       return;
     }
-    if (!password) {
-      setError("Please enter a password.");
+    if (newPassword !== confirm) {
+      setError("Passwords do not match.");
       return;
     }
-    onLogin(email.trim().toLowerCase(), password);
+    onSet(newPassword);
   };
 
   return (
@@ -32,22 +30,24 @@ export default function Login({ onLogin, externalError = "" }) {
       </div>
       <div className="login-box">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4355f1" strokeWidth="2" style={{ marginBottom: 20 }}>
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
-        <h2 style={{ color: "#1e293b", marginBottom: 10, fontWeight: 900 }}>System Login</h2>
-        <p style={{ color: "#64748b", fontSize: "0.9rem", marginBottom: 25 }}>
-          Enter your email and password to continue.
+        <h2 style={{ color: "#1e293b", marginBottom: 10, fontWeight: 900 }}>Set Your Password</h2>
+        <p style={{ color: "#64748b", fontSize: "0.9rem", marginBottom: 5 }}>
+          Welcome! Set up your personal password for
+        </p>
+        <p style={{ color: "#4355f1", fontWeight: 700, fontSize: "0.85rem", marginBottom: 25, wordBreak: "break-all" }}>
+          {email}
         </p>
 
         <form onSubmit={handleSubmit} style={{ width: "100%" }}>
           <div className="form-group" style={{ marginBottom: "15px" }}>
             <input
-              type="email"
+              type="password"
               className="form-input"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); setError(""); }}
+              placeholder="New password"
+              value={newPassword}
+              onChange={(e) => { setNewPassword(e.target.value); setError(""); }}
               required
               autoFocus
             />
@@ -56,15 +56,15 @@ export default function Login({ onLogin, externalError = "" }) {
             <input
               type="password"
               className={`form-input ${error ? "input-error" : ""}`}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(""); }}
+              placeholder="Confirm password"
+              value={confirm}
+              onChange={(e) => { setConfirm(e.target.value); setError(""); }}
               required
             />
-            {displayError && <div className="error-text">{displayError}</div>}
+            {error && <div className="error-text">{error}</div>}
           </div>
           <button type="submit" className="btn-primary" style={{ width: "100%" }}>
-            Secure Access
+            Save Password & Enter
           </button>
         </form>
       </div>

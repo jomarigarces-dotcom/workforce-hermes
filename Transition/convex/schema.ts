@@ -30,6 +30,7 @@ export default defineSchema({
     name: v.string(),
     email: v.string(),
     role: v.string(),
+    password: v.optional(v.string()),
   }).index("by_email", ["email"]),
 
   notebook: defineTable({
