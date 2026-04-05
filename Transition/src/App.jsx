@@ -39,6 +39,10 @@ export default function App() {
 
     const email = localStorage.getItem("wf_email") || "";
     if (!email) {
+      // Stale session — no email stored. Force re-login.
+      localStorage.removeItem("wf_authenticated");
+      localStorage.removeItem("wf_email");
+      setIsAuthenticated(false);
       setLoading(false);
       return;
     }
@@ -84,6 +88,16 @@ export default function App() {
 
     setLoading(false);
   }, [staff, isAuthenticated]);
+
+  // Lock body scroll when login or access denied is showing
+  useEffect(() => {
+    if (!isAuthenticated || !hasAccess) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [isAuthenticated, hasAccess]);
 
   // Add/remove role class on body
   useEffect(() => {
