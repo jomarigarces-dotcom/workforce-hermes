@@ -16,13 +16,14 @@ const INITIAL_STAFF = [
 ];
 
 export const getStaff = query({
+  args: {},
   handler: async (ctx) => {
     const savedStaff = await ctx.db.query("staff").collect();
 
     // Merge: initial staff are always present, saved staff can override
-    const staffMap = {};
+    const staffMap: Record<string, any> = {};
     INITIAL_STAFF.forEach((s) => {
-      staffMap[s.email.toLowerCase()] = { ...s, _id: undefined };
+      staffMap[s.email.toLowerCase()] = { ...s };
     });
     savedStaff.forEach((s) => {
       staffMap[s.email.toLowerCase()] = s;
