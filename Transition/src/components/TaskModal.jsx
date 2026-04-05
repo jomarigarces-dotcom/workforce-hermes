@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
-export default function TaskModal({ taskId, isEditMode, userRole, actualRole, userName, staff, onClose }) {
+export default function TaskModal({ taskId, isEditMode, userRole, actualRole, userName, staff, onClose, showModal }) {
   const tasks = useQuery(api.tasks.getTasks);
   const updateTaskMilestones = useMutation(api.tasks.updateTaskMilestones);
   const addNoteToTask = useMutation(api.tasks.addNoteToTask);
@@ -48,10 +48,15 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
   }
 
   function handleDelete() {
-    if (confirm("Are you sure you want to delete this task?")) {
-      deleteTask({ taskId });
-      onClose();
-    }
+    showModal({
+      title: "Delete Project",
+      message: "Are you sure you want to permanently delete this project? This action cannot be undone.",
+      type: "confirm",
+      onConfirm: () => {
+        deleteTask({ taskId });
+        onClose();
+      }
+    });
   }
 
   function handleSaveEdits() {
@@ -227,7 +232,18 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
               )}
             </div>
             <div className="note-input-group" style={{ marginTop: 20 }}>
-              <input type="text" className="note-input" id="modal-note-input" placeholder="Add a note..." />
+              <input 
+                type="text" 
+                className="note-input" 
+                id="modal-note-input" 
+                placeholder="Add a note..." 
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddNote();
+                  }
+                }}
+              />
               <button className="btn-add-note" onClick={handleAddNote}>Add</button>
             </div>
           </div>

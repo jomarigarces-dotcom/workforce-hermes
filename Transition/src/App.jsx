@@ -9,6 +9,7 @@ import AdminPanel from "./components/AdminPanel";
 import TaskModal from "./components/TaskModal";
 import Login from "./components/Login";
 import SetPassword from "./components/SetPassword";
+import CustomModal from "./components/CustomModal";
 
 export default function App() {
   // --- Auth state ---
@@ -37,11 +38,20 @@ export default function App() {
   const [modalTaskId, setModalTaskId] = useState(null);
   const [modalEditMode, setModalEditMode] = useState(false);
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, taskId: null });
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "alert",
+    onConfirm: () => {},
+    onCancel: () => {},
+  });
 
   // --- Convex ---
   const staff = useQuery(api.staff.getStaff);
   const addStaffMutation = useMutation(api.staff.addStaff);
   const setPasswordMutation = useMutation(api.staff.setPassword);
+  const deleteTask = useMutation(api.tasks.deleteTask);
 
   // --- Resolve user once authenticated and staff loaded ---
   useEffect(() => {
@@ -216,6 +226,26 @@ export default function App() {
     setContextMenu({ visible: true, x: e.pageX, y: e.pageY, taskId });
   }
 
+  /**
+   * Shows a custom alert or confirmation modal.
+   * @param {Object} options { title, message, type, onConfirm }
+   */
+  function showModal({ title, message, type = "alert", onConfirm }) {
+    setModalConfig({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        if (onConfirm) onConfirm();
+        setModalConfig((prev) => ({ ...prev, isOpen: false }));
+      },
+      onCancel: () => {
+        setModalConfig((prev) => ({ ...prev, isOpen: false }));
+      },
+    });
+  }
+
   // -------------------------------------------------------
   // Render stages
   // -------------------------------------------------------
@@ -362,6 +392,7 @@ export default function App() {
           userName={userName}
           openTaskModal={openTaskModal}
           onContextMenu={handleContextMenu}
+          showModal={showModal}
         />
       )}
       {currentView === "entry" && (
@@ -369,6 +400,7 @@ export default function App() {
           userRole={userRole}
           userName={userName}
           onCreated={() => switchView("kanban")}
+          showModal={showModal}
         />
       )}
       {currentView === "notebook" && (
@@ -386,6 +418,7 @@ export default function App() {
           userName={userName}
           staff={staff || []}
           onClose={closeTaskModal}
+          showModal={showModal}
         />
       )}
 
@@ -411,9 +444,12 @@ export default function App() {
           <div
             className="context-menu-item delete-option"
             onClick={() => {
-              if (confirm("Are you sure you want to delete this task?")) {
-                // deletion handled inside KanbanBoard
-              }
+              showModal({
+                title: "Delete Project",
+                message: "Are you sure you want to permanently delete this project? This action cannot be undone.",
+                type: "confirm",
+                onConfirm: () => deleteTask({ taskId: contextMenu.taskId })
+              });
               setContextMenu((prev) => ({ ...prev, visible: false }));
             }}
           >
@@ -425,6 +461,16 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Custom Alert/Confirm Modal */}
+      <CustomModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm}
+        onCancel={modalConfig.onCancel}
+      />
     </>
   );
 }

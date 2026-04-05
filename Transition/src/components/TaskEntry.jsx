@@ -15,7 +15,7 @@ const DEFAULT_MILESTONES = [
   { name: "Post-Launch Support", days: 22 },
 ];
 
-export default function TaskEntry({ userRole, userName, onCreated }) {
+export default function TaskEntry({ userRole, userName, onCreated, showModal }) {
   const staff = useQuery(api.staff.getStaff);
   const addTask = useMutation(api.tasks.addTask);
 
@@ -82,12 +82,22 @@ export default function TaskEntry({ userRole, userName, onCreated }) {
         description: document.getElementById("task-desc").value,
         milestones: milestonesData,
       });
-      alert("Project Deployed Successfully");
-      resetForm();
-      onCreated();
+      showModal({
+        title: "Project Deployed",
+        message: "Your project has been successfully deployed to the database.",
+        type: "success",
+        onConfirm: () => {
+          resetForm();
+          onCreated();
+        }
+      });
     } catch (err) {
       console.error("Task submission error:", err);
-      alert("Error deploying task.");
+      showModal({
+        title: "Deployment Failed",
+        message: "There was an error deploying your task. Please try again.",
+        type: "error"
+      });
     }
     setSubmitting(false);
   }

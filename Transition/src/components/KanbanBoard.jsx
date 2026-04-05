@@ -2,11 +2,21 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
-export default function KanbanBoard({ userRole, actualRole, userName, openTaskModal, onContextMenu }) {
+export default function KanbanBoard({ userRole, actualRole, userName, openTaskModal, onContextMenu, showModal }) {
   const tasks = useQuery(api.tasks.getTasks);
-  const updateTaskStatus = useMutation(api.tasks.updateTaskStatus);
+  const updateTaskStatus = useMutation(api.tasks.updateTaskStatus).withOptimisticUpdate(
+    (localStore, { taskId, newStatus }) => {
+      const task = localStore.getQuery(api.tasks.getTasks)?.find((t) => t._id === taskId);
+      if (task) {
+        localStore.setQuery(api.tasks.getTasks, undefined, (prevTasks) =>
+          prevTasks.map((t) => (t._id === taskId ? { ...t, status: newStatus, lastUpdated: Date.now() } : t))
+        );
+      }
+    }
+  );
   const updateTaskMilestones = useMutation(api.tasks.updateTaskMilestones);
   const addNoteToTask = useMutation(api.tasks.addNoteToTask);
+  const deleteTask = useMutation(api.tasks.deleteTask);
 
   const [expandedCards, setExpandedCards] = useState({});
   const [draggedMilestoneIdx, setDraggedMilestoneIdx] = useState(null);
@@ -254,7 +264,18 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
                 )}
               </div>
               <div className="note-input-group">
-                <input type="text" className="note-input" id={`note-input-${t._id}`} placeholder="Add a note..." />
+                <input 
+                  type="text" 
+                  className="note-input" 
+                  id={`note-input-${t._id}`} 
+                  placeholder="Add a note..." 
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddNote(t._id, `note-input-${t._id}`);
+                    }
+                  }}
+                />
                 <button className="btn-add-note" onClick={() => handleAddNote(t._id, `note-input-${t._id}`)}>
                   Add
                 </button>
