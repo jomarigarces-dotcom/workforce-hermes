@@ -17,7 +17,20 @@ const DEFAULT_MILESTONES = [
 
 export default function TaskEntry({ userRole, userName, onCreated, showModal }) {
   const staff = useQuery(api.staff.getStaff);
-  const addTask = useMutation(api.tasks.addTask);
+  const addTask = useMutation(api.tasks.addTask).withOptimisticUpdate((localStore, args) => {
+    const prevTasks = localStore.getQuery(api.tasks.getTasks);
+    if (prevTasks !== undefined) {
+      const newTask = {
+        _id: "optimistic-task-" + Date.now(),
+        ...args,
+        status: "todo",
+        completedMilestones: 0,
+        notes: [],
+        lastUpdated: Date.now(),
+      };
+      localStore.setQuery(api.tasks.getTasks, undefined, [...prevTasks, newTask]);
+    }
+  });
 
   const [milestones, setMilestones] = useState(JSON.parse(JSON.stringify(DEFAULT_MILESTONES)));
   const [selectedAssignees, setSelectedAssignees] = useState(new Set());

@@ -8,9 +8,10 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
     (localStore, { taskId, newStatus }) => {
       const task = localStore.getQuery(api.tasks.getTasks)?.find((t) => t._id === taskId);
       if (task) {
-        localStore.setQuery(api.tasks.getTasks, undefined, (prevTasks) =>
-          prevTasks.map((t) => (t._id === taskId ? { ...t, status: newStatus, lastUpdated: Date.now() } : t))
-        );
+        localStore.setQuery(api.tasks.getTasks, undefined, (prevTasks) => {
+          if (!prevTasks) return prevTasks;
+          return prevTasks.map((t) => (t._id === taskId ? { ...t, status: newStatus, lastUpdated: Date.now() } : t));
+        });
       }
     }
   );
