@@ -40,7 +40,7 @@ export default function IntroAnimation({ onDone }) {
       }}
     >
       <video
-        src="/logo animation.mp4"
+        src="/logo%20animation.mp4"
         autoPlay
         muted
         playsInline
