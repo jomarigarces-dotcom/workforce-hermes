@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
-export default function AdminPanel() {
+export default function AdminPanel({ showModal }) {
   const staff = useQuery(api.staff.getStaff);
   const addStaffMut = useMutation(api.staff.addStaff);
   const updateStaffRole = useMutation(api.staff.updateStaffRole);
@@ -82,6 +82,7 @@ export default function AdminPanel() {
                   <th>Name</th>
                   <th>Role</th>
                   <th>Email</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -99,6 +100,22 @@ export default function AdminPanel() {
                       </select>
                     </td>
                     <td style={{ color: "#64748b" }}>{s.email}</td>
+                    <td>
+                      <button
+                        className="btn-secondary"
+                        style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#ef4444", color: "white" }}
+                        onClick={() => {
+                          showModal({
+                            title: "Revoke Access",
+                            message: `Are you sure you want to completely remove access for ${s.name}? They will no longer be able to log in.`,
+                            type: "confirm",
+                            onConfirm: () => deleteStaffMut({ email: s.email })
+                          });
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

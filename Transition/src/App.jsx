@@ -422,7 +422,7 @@ export default function App() {
       {currentView === "notebook" && (
         <Notebook userRole={userRole} userName={userName} />
       )}
-      {currentView === "admin" && <AdminPanel />}
+      {currentView === "admin" && <AdminPanel showModal={showModal} />}
 
       {/* Task Modal */}
       {modalTaskId && (

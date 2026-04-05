@@ -29,7 +29,7 @@ export const getStaff = query({
       staffMap[s.email.toLowerCase()] = s;
     });
 
-    return Object.values(staffMap);
+    return Object.values(staffMap).filter((s: any) => s.role !== "Revoked");
   },
 });
 
@@ -138,8 +138,21 @@ export const deleteStaff = mutation({
       .query("staff")
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .first();
+    
     if (existing) {
-      await ctx.db.delete(existing._id);
+      await ctx.db.patch(existing._id, { role: "Revoked" });
+    } else {
+      // Staff member in INITIAL_STAFF but not DB yet — add them as Revoked
+      const initial = INITIAL_STAFF.find(
+        (s) => s.email.toLowerCase() === args.email.toLowerCase()
+      );
+      if (initial) {
+        await ctx.db.insert("staff", {
+          name: initial.name,
+          email: initial.email,
+          role: "Revoked",
+        });
+      }
     }
   },
 });
