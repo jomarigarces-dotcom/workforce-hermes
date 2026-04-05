@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
@@ -24,7 +24,17 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
   const [expandedCards, setExpandedCards] = useState({});
   const [draggedMilestoneIdx, setDraggedMilestoneIdx] = useState(null);
 
-  if (!tasks) {
+  // Persist last known tasks to prevent empty-board flicker during sync
+  const [lastKnownTasks, setLastKnownTasks] = useState([]);
+
+  useEffect(() => {
+    if (Array.isArray(tasks) && tasks.length > 0) {
+      setLastKnownTasks(tasks);
+    }
+  }, [tasks]);
+
+  // Show a minimal loading state only on the very first load (no known tasks yet)
+  if (!tasks && lastKnownTasks.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: 40 }}>
         <p style={{ color: "#94a3b8" }}>Loading kanban...</p>
@@ -32,35 +42,7 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
     );
   }
 
-  const columns = ["todo", "pending", "development", "testing", "done", "scrapyard"];
-  const columnLabels = {
-    todo: "To Do",
-    pending: "Pending",
-    development: "In Development",
-    testing: "In Testing",
-    done: "Done",
-    scrapyard: "Scrapyard",
-  };
-  const columnClasses = {
-    todo: "col-todo",
-    pending: "col-pending",
-    development: "col-dev",
-    testing: "col-test",
-    done: "col-done",
-    scrapyard: "col-scrap",
-  };
-
-  // Use a local state to persist the board during sync flashes
-  const [lastKnownTasks, setLastKnownTasks] = useState([]);
-
-  // Sort and filter using lastKnownTasks as a fallback to prevent 1-3s "empty board" flashes
-  useEffect(() => {
-    if (tasks && tasks.length > 0) {
-      setLastKnownTasks(tasks);
-    }
-  }, [tasks]);
-
-  const displayTasks = (tasks && tasks.length > 0) ? tasks : lastKnownTasks;
+  const displayTasks = (Array.isArray(tasks) && tasks.length > 0) ? tasks : lastKnownTasks;
   const sorted = [...(Array.isArray(displayTasks) ? displayTasks : [])].sort((a, b) => b.lastUpdated - a.lastUpdated);
   let filtered = sorted;
   if (userRole === "Programmer") {
