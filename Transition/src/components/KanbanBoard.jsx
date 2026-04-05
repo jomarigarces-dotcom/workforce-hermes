@@ -6,11 +6,11 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
   const tasks = useQuery(api.tasks.getTasks);
   const updateTaskStatus = useMutation(api.tasks.updateTaskStatus).withOptimisticUpdate(
     (localStore, { taskId, newStatus }) => {
-      const allTasks = localStore.getQuery(api.tasks.getTasks);
+      const allTasks = localStore.getQuery(api.tasks.getTasks, {});
       if (!Array.isArray(allTasks)) return;
       const task = allTasks.find((t) => t._id === taskId);
       if (task) {
-        localStore.setQuery(api.tasks.getTasks, undefined, (prevTasks) => {
+        localStore.setQuery(api.tasks.getTasks, {}, (prevTasks) => {
           if (!Array.isArray(prevTasks)) return prevTasks;
           return prevTasks.map((t) => (t._id === taskId ? { ...t, status: newStatus, lastUpdated: Date.now() } : t));
         });
@@ -50,8 +50,18 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
     scrapyard: "col-scrap",
   };
 
-  // Sort and filter
-  const sorted = [...(Array.isArray(tasks) ? tasks : [])].sort((a, b) => b.lastUpdated - a.lastUpdated);
+  // Use a local state to persist the board during sync flashes
+  const [lastKnownTasks, setLastKnownTasks] = useState([]);
+
+  // Sort and filter using lastKnownTasks as a fallback to prevent 1-3s "empty board" flashes
+  useEffect(() => {
+    if (tasks && tasks.length > 0) {
+      setLastKnownTasks(tasks);
+    }
+  }, [tasks]);
+
+  const displayTasks = (tasks && tasks.length > 0) ? tasks : lastKnownTasks;
+  const sorted = [...(Array.isArray(displayTasks) ? displayTasks : [])].sort((a, b) => b.lastUpdated - a.lastUpdated);
   let filtered = sorted;
   if (userRole === "Programmer") {
     filtered = sorted.filter(
