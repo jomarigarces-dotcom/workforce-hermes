@@ -17,7 +17,11 @@ export default function AdminPanel({ showModal }) {
       email: document.getElementById("staff-email").value,
       role: document.getElementById("staff-role").value,
     });
-    alert("Staff Member Registered Successfully");
+    showModal({
+      title: "Success",
+      message: "Staff Member Registered Successfully",
+      type: "success"
+    });
     e.target.reset();
   }
 
@@ -70,9 +74,17 @@ export default function AdminPanel({ showModal }) {
                               onClick={async () => {
                                 try {
                                   await updateStaffRole({ staffEmail: s.email, newRole: "Programmer" });
-                                  alert(`Approved ${s.name} as Programmer`);
+                                  showModal({
+                                    title: "Success",
+                                    message: `Approved ${s.name} as Programmer`,
+                                    type: "success"
+                                  });
                                 } catch (err) {
-                                  alert(`Approval failed: ${err.message}`);
+                                  showModal({
+                                    title: "Error",
+                                    message: `Approval failed: ${err.message}`,
+                                    type: "error"
+                                  });
                                 }
                               }}
                             >
@@ -84,9 +96,17 @@ export default function AdminPanel({ showModal }) {
                               onClick={async () => {
                                 try {
                                   await deleteStaffMut({ email: s.email });
-                                  alert(`Rejected access for ${s.name}`);
+                                  showModal({
+                                    title: "Request Rejected",
+                                    message: `Successfully rejected access for ${s.name}`,
+                                    type: "success"
+                                  });
                                 } catch (err) {
-                                  alert(`Rejection failed: ${err.message}`);
+                                  showModal({
+                                    title: "Error",
+                                    message: `Rejection failed: ${err.message}`,
+                                    type: "error"
+                                  });
                                 }
                               }}
                             >
@@ -142,9 +162,17 @@ export default function AdminPanel({ showModal }) {
                             onConfirm: async () => {
                               try {
                                 await deleteStaffMut({ email: s.email });
-                                alert(`Access revoked for ${s.name}`);
+                                showModal({
+                                  title: "Access Revoked",
+                                  message: `Successfully removed access for ${s.name}`,
+                                  type: "success"
+                                });
                               } catch (err) {
-                                alert(`Removal failed: ${err.message}`);
+                                showModal({
+                                  title: "Error",
+                                  message: `Removal failed: ${err.message}`,
+                                  type: "error"
+                                });
                               }
                             }
                           });
