@@ -24,7 +24,10 @@ export default defineSchema({
     ),
     startDate: v.optional(v.string()),
     projectLink: v.optional(v.string()),
-    adminCredentials: v.optional(v.string()),
+    adminCredentials: v.optional(v.object({
+      email: v.string(),
+      password: v.string(),
+    })),
     lastUpdated: v.number(),
   }),
 

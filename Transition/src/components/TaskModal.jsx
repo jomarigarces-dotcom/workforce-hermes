@@ -305,7 +305,20 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
                   ADMIN CREDENTIALS (SENSITIVE)
                 </div>
                 <div className="creds-content">
-                  {task.adminCredentials || "No credentials provided."}
+                  <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: "10px 15px", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.65rem", fontWeight: 800, textTransform: "uppercase", color: "#991b1b", opacity: 0.7 }}>Email/User:</span>
+                    <span style={{ fontWeight: 700 }}>{task.adminCredentials?.email || "—"}</span>
+                    
+                    <span style={{ fontSize: "0.65rem", fontWeight: 800, textTransform: "uppercase", color: "#991b1b", opacity: 0.7 }}>Password:</span>
+                    <span style={{ fontWeight: 700, fontStyle: task.adminCredentials?.password ? "normal" : "italic" }}>
+                      {task.adminCredentials?.password || "—"}
+                    </span>
+                  </div>
+                  {!task.adminCredentials && (
+                    <div style={{ fontSize: "0.75rem", color: "#991b1b", marginTop: 10, fontStyle: "italic", opacity: 0.8 }}>
+                      No credentials provided.
+                    </div>
+                  )}
                 </div>
               </div>
             )}

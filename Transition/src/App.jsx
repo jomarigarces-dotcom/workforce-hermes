@@ -10,6 +10,7 @@ import TaskModal from "./components/TaskModal";
 import Login from "./components/Login";
 import SetPassword from "./components/SetPassword";
 import CustomModal from "./components/CustomModal";
+import InputModal from "./components/InputModal";
 import IntroAnimation from "./components/IntroAnimation";
 
 export default function App() {
@@ -274,6 +275,27 @@ export default function App() {
     });
   }
 
+  const [inputModal, setInputModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    fields: [],
+    onConfirm: () => {},
+  });
+
+  function showInputModal({ title, message, fields, onConfirm }) {
+    setInputModal({
+      isOpen: true,
+      title,
+      message,
+      fields,
+      onConfirm: (data) => {
+        onConfirm(data);
+        setInputModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  }
+
   // -------------------------------------------------------
   // Render stages
   // -------------------------------------------------------
@@ -472,16 +494,17 @@ export default function App() {
             Edit Task
           </div>
 
-          {/* New Project Link and Admin Credentials options for Owner */}
           {contextMenu.task.assignee.toLowerCase().includes(userName.toLowerCase()) && (
             <>
               <div
                 className="context-menu-item"
                 onClick={() => {
-                  const link = window.prompt("Enter Project Link:", contextMenu.task.projectLink || "");
-                  if (link !== null) {
-                    updateProjectLink({ taskId: contextMenu.task._id, projectLink: link });
-                  }
+                  showInputModal({
+                    title: "Project Link",
+                    message: "Enter the direct link for this project workspace.",
+                    fields: [{ name: "link", label: "Project URL", placeholder: "https://...", initialValue: contextMenu.task.projectLink }],
+                    onConfirm: (data) => updateProjectLink({ taskId: contextMenu.task._id, projectLink: data.link })
+                  });
                   setContextMenu((prev) => ({ ...prev, visible: false }));
                 }}
               >
@@ -494,10 +517,15 @@ export default function App() {
               <div
                 className="context-menu-item"
                 onClick={() => {
-                  const creds = window.prompt("Enter Admin Credentials:", contextMenu.task.adminCredentials || "");
-                  if (creds !== null) {
-                    updateAdminCredentials({ taskId: contextMenu.task._id, adminCredentials: creds });
-                  }
+                  showInputModal({
+                    title: "Admin Credentials",
+                    message: "Provide login details for administrative access.",
+                    fields: [
+                      { name: "email", label: "Email / Username", placeholder: "email@example.com", initialValue: contextMenu.task.adminCredentials?.email },
+                      { name: "password", label: "Password", placeholder: "••••••••", type: "password", initialValue: contextMenu.task.adminCredentials?.password }
+                    ],
+                    onConfirm: (data) => updateAdminCredentials({ taskId: contextMenu.task._id, email: data.email, password: data.password })
+                  });
                   setContextMenu((prev) => ({ ...prev, visible: false }));
                 }}
               >
@@ -539,6 +567,15 @@ export default function App() {
         type={modalConfig.type}
         onConfirm={modalConfig.onConfirm}
         onCancel={modalConfig.onCancel}
+      />
+
+      <InputModal
+        isOpen={inputModal.isOpen}
+        title={inputModal.title}
+        message={inputModal.message}
+        fields={inputModal.fields}
+        onConfirm={inputModal.onConfirm}
+        onCancel={() => setInputModal(prev => ({ ...prev, isOpen: false }))}
       />
 
       {/* Intro Animation Overlay */}

@@ -218,11 +218,15 @@ export const updateProjectLink = mutation({
 export const updateAdminCredentials = mutation({
   args: {
     taskId: v.id("tasks"),
-    adminCredentials: v.string(),
+    email: v.string(),
+    password: v.string(),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.taskId, {
-      adminCredentials: args.adminCredentials,
+      adminCredentials: {
+        email: args.email,
+        password: args.password,
+      },
       lastUpdated: Date.now(),
     });
   },
