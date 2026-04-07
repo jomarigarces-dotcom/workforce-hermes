@@ -499,11 +499,16 @@ export default function App() {
               <div
                 className="context-menu-item"
                 onClick={() => {
+                  if (!contextMenu.task || !contextMenu.task._id) return;
                   showInputModal({
                     title: "Project Link",
                     message: "Enter the direct link for this project workspace.",
                     fields: [{ name: "link", label: "Project URL", placeholder: "https://...", initialValue: contextMenu.task.projectLink }],
-                    onConfirm: (data) => updateProjectLink({ taskId: contextMenu.task._id, projectLink: data.link })
+                    onConfirm: (data) => {
+                      console.log("Saving Project Link for ID:", contextMenu.task._id, data.link);
+                      updateProjectLink({ taskId: contextMenu.task._id, projectLink: data.link })
+                        .catch(err => console.error("Project Link Mutation Error:", err));
+                    }
                   });
                   setContextMenu((prev) => ({ ...prev, visible: false }));
                 }}
@@ -517,6 +522,7 @@ export default function App() {
               <div
                 className="context-menu-item"
                 onClick={() => {
+                  if (!contextMenu.task || !contextMenu.task._id) return;
                   showInputModal({
                     title: "Admin Credentials",
                     message: "Provide login details for administrative access.",
@@ -524,7 +530,11 @@ export default function App() {
                       { name: "email", label: "Email / Username", placeholder: "email@example.com", initialValue: contextMenu.task.adminCredentials?.email },
                       { name: "password", label: "Password", placeholder: "••••••••", type: "password", initialValue: contextMenu.task.adminCredentials?.password }
                     ],
-                    onConfirm: (data) => updateAdminCredentials({ taskId: contextMenu.task._id, email: data.email, password: data.password })
+                    onConfirm: (data) => {
+                      console.log("Saving Admin Creds for ID:", contextMenu.task._id, data);
+                      updateAdminCredentials({ taskId: contextMenu.task._id, email: data.email, password: data.password })
+                        .catch(err => console.error("Admin Cred Mutation Error:", err));
+                    }
                   });
                   setContextMenu((prev) => ({ ...prev, visible: false }));
                 }}

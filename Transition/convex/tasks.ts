@@ -208,6 +208,8 @@ export const updateProjectLink = mutation({
     projectLink: v.string(),
   },
   handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
     await ctx.db.patch(args.taskId, {
       projectLink: args.projectLink,
       lastUpdated: Date.now(),
@@ -222,6 +224,8 @@ export const updateAdminCredentials = mutation({
     password: v.string(),
   },
   handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
     await ctx.db.patch(args.taskId, {
       adminCredentials: {
         email: args.email,
