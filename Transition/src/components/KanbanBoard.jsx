@@ -255,6 +255,14 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
           </>
         ) : (
           <>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+              <span style={{ fontSize: "0.65rem", fontWeight: 800, color: "#64748b" }}>
+                Milestones: {doneM} / {totalM}
+              </span>
+              <span style={{ fontSize: "0.65rem", fontWeight: 800, color: "var(--color-accent)" }}>
+                {progressPercent}%
+              </span>
+            </div>
             <div className="progress-container">
               <div className="progress-fill" style={{ width: `${progressPercent}%` }}></div>
             </div>
