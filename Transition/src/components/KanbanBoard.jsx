@@ -23,9 +23,8 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
 
   const [expandedCards, setExpandedCards] = useState({});
   const [draggedMilestoneIdx, setDraggedMilestoneIdx] = useState(null);
-
-  // Persist last known tasks to prevent empty-board flicker during sync
   const [lastKnownTasks, setLastKnownTasks] = useState([]);
+  const [fullViewColumn, setFullViewColumn] = useState(null);
 
   useEffect(() => {
     if (Array.isArray(tasks) && tasks.length > 0) {
@@ -33,7 +32,6 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
     }
   }, [tasks]);
 
-  // Show a minimal loading state only on the very first load (no known tasks yet)
   if (!tasks && lastKnownTasks.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: 40 }}>
@@ -131,7 +129,7 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
     setDraggedMilestoneIdx(null);
   }
 
-  function renderTaskCard(t) {
+  function renderTaskCard(t, isFullView = false) {
     const milestones = t.milestones || [];
     const totalM = milestones.length > 0 ? milestones.length : 10;
     const doneM = t.completedMilestones || 0;
@@ -145,20 +143,21 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
     }
 
     const isProgrammerView = userRole === "Programmer";
-    const cardClass = isProgrammerView ? "programmer-card" : "task-card";
+    const cardClass = isFullView ? "rounded-task-card" : (isProgrammerView ? "programmer-card" : "task-card");
 
     return (
       <div
         key={t._id}
         className={cardClass}
-        draggable
+        draggable={!isFullView}
         data-id={t._id}
         onDragStart={(e) => {
+          if (isFullView) return;
           e.dataTransfer.setData("taskId", t._id);
           e.currentTarget.classList.add("dragging");
         }}
-        onDragEnd={(e) => e.currentTarget.classList.remove("dragging")}
-        onClick={() => openTaskModal(t._id)}
+        onDragEnd={(e) => !isFullView && e.currentTarget.classList.remove("dragging")}
+        onClick={() => { setFullViewColumn(null); openTaskModal(t._id); }}
         onContextMenu={(e) => onContextMenu(e, t._id)}
       >
         <div className="card-header">
@@ -167,6 +166,13 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
             #{(t._id || "").slice(-4)}
           </div>
         </div>
+        
+        {isFullView && (
+          <div className="rounded-task-tag">
+            {t.status.toUpperCase()}
+          </div>
+        )}
+
         <div className="card-assignee">
           <svg className="assignee-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -175,10 +181,9 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
           {t.assignee || "Unassigned"}
         </div>
 
-        {isProgrammerView ? (
-          /* Programmer card: expandable milestones + notes */
+        {(isProgrammerView && !isFullView) ? (
           <>
-            <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 12, padding: 15, marginBottom: 20 }}>
+            <div style={{ background: "white", border: "1px solid #dcfce7", borderRadius: 12, padding: 15, marginBottom: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: 800, color: "#1e293b", marginBottom: 10 }}>
                 <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
                   Milestones: {doneM} / {totalM} ({progressPercent}%)
@@ -194,9 +199,6 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
               </div>
               <div className="progress-container" style={{ height: 8, marginBottom: 15, borderRadius: 10 }}>
                 <div className="progress-fill" style={{ width: `${progressPercent}%`, borderRadius: 10 }}></div>
-              </div>
-              <div style={{ fontSize: "0.65rem", color: "#94a3b8", fontStyle: "italic", marginBottom: 10, textAlign: "center" }}>
-                Drag milestones to reorder them
               </div>
               <div className={`milestone-vertical-list ${expandedCards[t._id] ? "" : "collapsed-view"}`}>
                 {milestones.map((m, idx) => {
@@ -244,78 +246,27 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
                           </span>
                           {actionBtn}
                         </div>
-                        {m.completed && m.completedAt && (
-                          <div className="milestone-date">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                            Completed {m.completedAt}
-                          </div>
-                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
-
-            {/* Notes section */}
-            <div className="notes-section" onClick={(e) => e.stopPropagation()}>
-              <div className="notes-header">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                Latest Note
-              </div>
-              <div className="notes-list">
-                {(t.notes || []).length > 0 ? (
-                  <div className="note-item">
-                    <div className="note-date">{t.notes[t.notes.length - 1].date}</div>
-                    <div className="note-text">{t.notes[t.notes.length - 1].text}</div>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: "0.7rem", color: "#94a3b8", fontStyle: "italic" }}>No notes yet</div>
-                )}
-              </div>
-              <div className="note-input-group">
-                <input 
-                  type="text" 
-                  className="note-input" 
-                  id={`note-input-${t._id}`} 
-                  placeholder="Add a note..." 
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddNote(t._id, `note-input-${t._id}`);
-                    }
-                  }}
-                />
-                <button className="btn-add-note" onClick={() => handleAddNote(t._id, `note-input-${t._id}`)}>
-                  Add
-                </button>
-              </div>
-            </div>
           </>
         ) : (
-          /* Admin view: progress dots + action buttons */
           <>
             <div className="progress-container">
               <div className="progress-fill" style={{ width: `${progressPercent}%` }}></div>
             </div>
-            <div className="milestones-grid">
-              {Array.from({ length: totalM }, (_, i) => (
-                <div key={i} className={`milestone-dot ${i < doneM ? "active" : ""}`}>
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-            <div className="card-actions">
-              {["todo", "pending", "development", "testing", "done", "scrapyard"].map((s) => (
-                <div key={s} className="action-btn" onClick={(e) => { e.stopPropagation(); handleMoveTask(t._id, s); }}>
-                  {s === "development" ? "Dev" : s === "testing" ? "Test" : s === "scrapyard" ? "Scrap" : s.charAt(0).toUpperCase() + s.slice(1)}
-                </div>
-              ))}
-            </div>
+            {!isFullView && (
+              <div className="card-actions">
+                {["todo", "pending", "development", "testing", "done", "scrapyard"].map((s) => (
+                  <div key={s} className="action-btn" onClick={(e) => { e.stopPropagation(); handleMoveTask(t._id, s); }}>
+                    {s === "development" ? "Dev" : s === "testing" ? "Test" : s === "scrapyard" ? "Scrap" : s.charAt(0).toUpperCase() + s.slice(1)}
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -324,10 +275,9 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
 
   return (
     <div id="kanban-view" className="view-section">
-      {/* Totals Bar */}
       <div className="kanban-totals-bar">
         {columns.map((c) => (
-          <div className="total-card" key={c}>
+          <div className="total-card" key={c} onClick={() => setFullViewColumn(c)}>
             <div className="total-value" style={{ color: `var(--${columnClasses[c].replace("col-", "col-")})` }}>
               {totals[c]}
             </div>
@@ -336,7 +286,6 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
         ))}
       </div>
 
-      {/* Kanban Columns */}
       <div className="kanban-container">
         {columns.map((col) => (
           <div
@@ -359,11 +308,33 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
                   if (col === "development") return s === "development" || s === "inprogress";
                   return s === col;
                 })
+                .slice(0, 5) // Show only latest 5
                 .map((t) => renderTaskCard(t))}
             </div>
           </div>
         ))}
       </div>
+
+      {/* Full View Modal */}
+      {fullViewColumn && (
+        <div className="modal-overlay" onClick={() => setFullViewColumn(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 1200 }}>
+            <button className="modal-close" onClick={() => setFullViewColumn(null)}>×</button>
+            <h2 style={{ fontWeight: 900, textTransform: "uppercase", marginBottom: 30, color: "var(--color-text-primary)" }}>
+              All Tasks: {columnLabels[fullViewColumn]} ({totals[fullViewColumn]})
+            </h2>
+            <div className="full-kanban-grid">
+              {filtered
+                .filter((t) => {
+                  const s = (t.status || "").toLowerCase();
+                  if (fullViewColumn === "development") return s === "development" || s === "inprogress";
+                  return s === fullViewColumn;
+                })
+                .map((t) => renderTaskCard(t, true))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

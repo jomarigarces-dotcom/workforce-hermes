@@ -168,6 +168,8 @@ export const deleteTask = mutation({
 export const updateTaskDetails = mutation({
   args: {
     taskId: v.id("tasks"),
+    newTitle: v.string(),
+    newDescription: v.optional(v.string()),
     newAssignee: v.string(),
     newMilestones: v.array(
       v.object({
@@ -184,6 +186,8 @@ export const updateTaskDetails = mutation({
     ).length;
 
     await ctx.db.patch(args.taskId, {
+      title: args.newTitle,
+      description: args.newDescription || "",
       assignee: args.newAssignee,
       milestones: args.newMilestones,
       completedMilestones: completedCount,

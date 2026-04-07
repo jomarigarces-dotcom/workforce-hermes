@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
@@ -8,10 +9,26 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
   const deleteTask = useMutation(api.tasks.deleteTask);
   const updateTaskDetails = useMutation(api.tasks.updateTaskDetails);
 
-  if (!tasks) return null;
+  const [selectedAssignees, setSelectedAssignees] = useState(new Set());
+  const [showOptions, setShowOptions] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedDesc, setEditedDesc] = useState("");
 
-  const task = tasks.find((t) => t._id === taskId);
-  if (!task) return null;
+  const task = tasks?.find((t) => t._id === taskId);
+
+  useEffect(() => {
+    if (task) {
+      setEditedTitle(task.title || "");
+      setEditedDesc(task.description || "");
+      const initialAssignees = (task.assignee || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s);
+      setSelectedAssignees(new Set(initialAssignees));
+    }
+  }, [task, isEditMode]);
+
+  if (!tasks || !task) return null;
 
   const milestones = task.milestones || [];
   const doneM = task.completedMilestones || 0;
@@ -22,6 +39,15 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
     const assigneeVal = (task.assignee || "").toLowerCase();
     const userNameVal = (userName || "").toLowerCase();
     if (!assigneeVal.includes(userNameVal)) canEditMilestone = false;
+  }
+
+  function toggleAssignee(name) {
+    setSelectedAssignees((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
   }
 
   function handleToggleMilestone(idx) {
@@ -60,8 +86,6 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
   }
 
   function handleSaveEdits() {
-    const assigneeInput = document.getElementById("edit-task-assignee");
-    const newAssignee = assigneeInput ? assigneeInput.value.trim() : task.assignee;
     const items = document.querySelectorAll(`#milestone-list-edit .edit-mode-item`);
     const newMilestones = [];
     items.forEach((item, idx) => {
@@ -75,7 +99,14 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
         completedAt: oldM && nameInput.value.trim() === oldM.name ? oldM.completedAt : undefined,
       });
     });
-    updateTaskDetails({ taskId, newAssignee, newMilestones });
+
+    updateTaskDetails({ 
+      taskId, 
+      newTitle: editedTitle,
+      newDescription: editedDesc,
+      newAssignee: Array.from(selectedAssignees).join(", "), 
+      newMilestones 
+    });
     onClose();
   }
 
@@ -105,7 +136,18 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
         <div className="modal-grid">
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-              <h1 className="modal-title" style={{ marginBottom: 0 }}>{task.title}</h1>
+              {isEditMode ? (
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={editedTitle} 
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  style={{ fontSize: "1.8rem", fontWeight: 900, padding: "5px 10px", width: "100%", marginRight: 20 }}
+                />
+              ) : (
+                <h1 className="modal-title" style={{ marginBottom: 0 }}>{task.title}</h1>
+              )}
+              
               {isEditMode ? (
                 <button className="btn-primary" style={{ background: "#3b82f6", color: "white", padding: "8px 16px", fontSize: "0.8rem", borderRadius: 8, width: "auto" }} onClick={handleSaveEdits}>
                   Save Changes
@@ -123,14 +165,25 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
                 <circle cx="12" cy="7" r="4" />
               </svg>
               {isEditMode ? (
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  Assigned to:
-                  <select id="edit-task-assignee" className="form-input" style={{ flex: 1, padding: "4px 8px", marginLeft: 8 }} defaultValue={task.assignee}>
-                    <option value="">Unassigned</option>
-                    {(Array.isArray(staff) ? staff : []).map((s) => (
-                      <option key={s.email} value={s.name}>{s.name}</option>
-                    ))}
-                  </select>
+                <div style={{ flex: 1, marginLeft: 8 }}>
+                  <div className="custom-multiselect">
+                    <div className="multiselect-trigger" onClick={() => setShowOptions(!showOptions)} style={{ color: selectedAssignees.size > 0 ? "#1e293b" : "#64748b", padding: "4px 8px", fontSize: "0.85rem" }}>
+                      {selectedAssignees.size > 0 ? Array.from(selectedAssignees).join(", ") : "Select Assignees..."}
+                    </div>
+                    <div className={`multiselect-options ${showOptions ? "show" : ""}`} style={{ fontSize: "0.85rem" }}>
+                      {(staff || []).map((s) => (
+                        <div key={s.email} className="multiselect-option" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            id={`modal-staff-${s.email}`}
+                            checked={selectedAssignees.has(s.name)}
+                            onChange={() => toggleAssignee(s.name)}
+                          />
+                          <label htmlFor={`modal-staff-${s.email}`}>{s.name}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 `Assigned to: ${task.assignee || "Unassigned"}`
@@ -139,10 +192,20 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
 
             <div className="modal-desc">
               <h3 style={{ fontWeight: 900, textTransform: "uppercase", fontSize: "0.9rem", color: "#1e293b", marginBottom: 10 }}>Project Description</h3>
-              {task.description || "No description provided."}
+              {isEditMode ? (
+                <textarea 
+                  className="form-input" 
+                  value={editedDesc} 
+                  onChange={(e) => setEditedDesc(e.target.value)}
+                  style={{ width: "100%", height: 100, fontSize: "0.9rem", padding: 10 }}
+                  placeholder="Enter project description..."
+                />
+              ) : (
+                task.description || "No description provided."
+              )}
             </div>
 
-            <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20 }}>
+            <div style={{ background: "white", border: "1px solid #dcfce7", borderRadius: 16, padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, color: "#1e293b", marginBottom: 10 }}>
                 <span style={{ fontSize: "0.85rem", color: "#64748b", margin: "0 auto" }}>
                   Milestones: {doneM} / {milestones.length} ({progressPercent}%)
@@ -217,7 +280,6 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
             </div>
           </div>
 
-          {/* Notes Panel */}
           <div style={{ background: "#f8fafc", padding: 30, borderRadius: 20, alignSelf: "start" }}>
             <h3 style={{ fontWeight: 900, textTransform: "uppercase", fontSize: "0.9rem", color: "#1e293b", marginBottom: 20 }}>Notes & Updates</h3>
             <div className="notes-list" style={{ maxHeight: 400, overflowY: "auto" }}>
