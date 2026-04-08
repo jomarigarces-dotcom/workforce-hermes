@@ -31,9 +31,9 @@
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   
   --header-height: 180px; /* Kept for compatibility, will refine in components */
-  --radius-lg: 24px;
-  --radius-md: 16px;
-  --radius-sm: 12px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
 }
 
 body {
@@ -100,18 +100,18 @@ header {
 }
 
 .header-box h1 {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 900;
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: -1px;
+  letter-spacing: -1.2px;
   color: #1f2937;
 }
 .header-box p {
   color: #64748b;
-  font-weight: 600;
+  font-weight: 700;
   margin: 2px 0 0 0;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 
 .nav-bar {
@@ -136,10 +136,10 @@ header {
 .nav-btn {
   background: rgba(255, 255, 255, 0.15);
   color: white;
-  padding: 6px 18px;
-  border-radius: 8px;
+  padding: 5px 15px;
+  border-radius: 6px;
   font-weight: 800;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   border: 1px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
   transition: 0.2s;
@@ -186,16 +186,16 @@ header {
   background: #f0fdf4;
 }
 .total-value {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 900;
   margin-bottom: 2px;
 }
 .total-label {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   font-weight: 800;
   text-transform: uppercase;
   color: #4b5563; /* Darker Gray for Visibility */
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
 }
 
 /* Kanban Layout */
@@ -810,11 +810,11 @@ header {
 .modal-content {
   background: var(--color-card-bg);
   width: 100%;
-  max-width: 950px;
-  max-height: calc(100vh - 60px);
+  max-width: 1100px;
+  max-height: calc(100vh - 40px);
   border-radius: var(--radius-lg);
   position: relative;
-  padding: 40px; /* Reduced from 60px */
+  padding: 30px; /* Reduced for compact high-end look */
   overflow-y: auto;
   box-shadow: var(--shadow-xl);
   border: 1px solid var(--glass-border);

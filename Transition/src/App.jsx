@@ -363,13 +363,13 @@ export default function App() {
       <header>
         <div className="header-container">
           <div style={{ minWidth: 180 }}></div>
-          <div className="header-box" style={{ padding: "15px 40px", borderRadius: "30px", border: "1px solid #f1f5f9", boxShadow: "var(--shadow-md)" }}>
-            <img src="https://i.imgur.com/BRd5lrB.png" alt="ECE Logo" className="header-logo" style={{ height: "60px" }} />
+          <div className="header-box" style={{ padding: "10px 30px", borderRadius: "20px", border: "1px solid #f1f5f9", boxShadow: "var(--shadow-md)" }}>
+            <img src="https://i.imgur.com/BRd5lrB.png" alt="ECE Logo" className="header-logo" style={{ height: "45px" }} />
             <div className="header-text-content">
-              <h1 style={{ fontSize: "2.2rem", letterSpacing: "-1.5px" }}>WORKFORCE HERMES</h1>
-              <p style={{ fontSize: "0.95rem", letterSpacing: "1px", color: "var(--color-text-secondary)", fontWeight: 700 }}>Workforce Programming Project Database</p>
+              <h1 style={{ fontSize: "1.6rem", letterSpacing: "-1.2px" }}>WORKFORCE HERMES</h1>
+              <p style={{ fontSize: "0.75rem", letterSpacing: "0.8px", color: "var(--color-text-secondary)", fontWeight: 700 }}>Workforce Programming Project Database</p>
             </div>
-            <img src="https://i.imgur.com/ycmU6oP.png" alt="WFM Logo" className="header-logo" style={{ height: "60px" }} />
+            <img src="https://i.imgur.com/ycmU6oP.png" alt="WFM Logo" className="header-logo" style={{ height: "45px" }} />
           </div>
           <div className="user-profile" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "20px", width: "auto" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
@@ -388,7 +388,7 @@ export default function App() {
             </div>
             <button
               className="btn-secondary"
-              style={{ padding: "10px 20px", fontSize: "0.75rem", background: "var(--color-logout)", borderRadius: "12px", fontWeight: 800 }}
+              style={{ padding: "8px 16px", fontSize: "0.65rem", background: "var(--color-logout)", borderRadius: "8px", fontWeight: 800 }}
               onClick={logout}
             >
               LOGOUT

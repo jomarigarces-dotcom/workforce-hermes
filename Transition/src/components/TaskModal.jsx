@@ -142,31 +142,31 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
                   className="form-input" 
                   value={editedTitle} 
                   onChange={(e) => setEditedTitle(e.target.value)}
-                  style={{ fontSize: "1.5rem", fontWeight: 900, padding: "8px 12px", width: "100%", marginRight: 20, borderRadius: "var(--radius-md)" }}
+                  style={{ fontSize: "1.2rem", fontWeight: 900, padding: "6px 10px", width: "100%", marginRight: 15, borderRadius: "var(--radius-md)" }}
                 />
               ) : (
-                <h1 className="modal-title" style={{ marginBottom: 0, fontSize: "1.8rem", letterSpacing: "-1px" }}>{task.title}</h1>
+                <h1 className="modal-title" style={{ marginBottom: 0, fontSize: "1.4rem", letterSpacing: "-0.8px" }}>{task.title}</h1>
               )}
               
               {isEditMode ? (
-                <button className="btn-primary" style={{ background: "#3b82f6", color: "white", padding: "10px 20px", fontSize: "0.75rem", borderRadius: 12, width: "auto", fontWeight: 800 }} onClick={handleSaveEdits}>
+                <button className="btn-primary" style={{ background: "#3b82f6", color: "white", padding: "8px 16px", fontSize: "0.65rem", borderRadius: 8, width: "auto", fontWeight: 800 }} onClick={handleSaveEdits}>
                   SAVE CHANGES
                 </button>
               ) : (
-                <div style={{ display: "flex", gap: 12 }}>
+                <div style={{ display: "flex", gap: 10 }}>
                   {task.projectLink && (
                     <a
                       href={task.projectLink.startsWith("http") ? task.projectLink : `https://${task.projectLink}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-primary"
-                      style={{ background: "var(--color-accent)", color: "white", padding: "10px 20px", fontSize: "0.75rem", borderRadius: 12, textDecoration: "none", fontWeight: 800, textAlign: "center", display: "inline-flex", alignItems: "center" }}
+                      style={{ background: "var(--color-accent)", color: "white", padding: "8px 16px", fontSize: "0.65rem", borderRadius: 8, textDecoration: "none", fontWeight: 800, textAlign: "center", display: "inline-flex", alignItems: "center" }}
                     >
                       VIEW PROJECT
                     </a>
                   )}
                   {userRole === "Admin" && (
-                    <button className="btn-secondary" style={{ background: "#ef4444", color: "white", padding: "10px 20px", fontSize: "0.75rem", borderRadius: 12, fontWeight: 800 }} onClick={handleDelete}>
+                    <button className="btn-secondary" style={{ background: "#ef4444", color: "white", padding: "8px 16px", fontSize: "0.65rem", borderRadius: 8, fontWeight: 800 }} onClick={handleDelete}>
                       DELETE TASK
                     </button>
                   )}

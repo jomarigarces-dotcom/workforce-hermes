@@ -160,9 +160,9 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
         onClick={() => { setFullViewColumn(null); openTaskModal(t._id); }}
         onContextMenu={(e) => onContextMenu(e, t)}
       >
-        <div className="card-header" style={{ marginBottom: 15 }}>
-          <h4 style={{ fontSize: "1rem", fontWeight: 900, letterSpacing: "-0.5px" }}>{t.title}</h4>
-          <div style={{ fontSize: "0.65rem", color: "#94a3b8", fontWeight: 800, letterSpacing: "1px" }}>
+        <div className="card-header" style={{ marginBottom: 12 }}>
+          <h4 style={{ fontSize: "0.85rem", fontWeight: 900, letterSpacing: "-0.4px" }}>{t.title}</h4>
+          <div style={{ fontSize: "0.6rem", color: "#94a3b8", fontWeight: 800, letterSpacing: "0.8px" }}>
             #{(t._id || "").slice(-4).toUpperCase()}
           </div>
         </div>
@@ -173,8 +173,8 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
           </div>
         )}
 
-        <div className="card-assignee" style={{ marginBottom: 15, fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
-          <svg className="assignee-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 16, height: 16 }}>
+        <div className="card-assignee" style={{ marginBottom: 12, fontSize: "0.7rem", color: "var(--color-text-secondary)" }}>
+          <svg className="assignee-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}>
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
@@ -290,13 +290,13 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
 
   return (
     <div id="kanban-view" className="view-section">
-      <div className="kanban-totals-bar" style={{ gap: "20px", padding: "20px 30px", marginBottom: "20px" }}>
+      <div className="kanban-totals-bar" style={{ gap: "15px", padding: "15px 20px", marginBottom: "15px" }}>
         {columns.map((c) => (
-          <div className="total-card" key={c} onClick={() => setFullViewColumn(c)} style={{ padding: "20px", borderRadius: "var(--radius-md)", border: "1px solid #f1f5f9", boxShadow: "var(--shadow-sm)" }}>
-            <div className="total-value" style={{ fontSize: "1.8rem", color: `var(--${columnClasses[c].replace("col-", "col-")})` }}>
+          <div className="total-card" key={c} onClick={() => setFullViewColumn(c)} style={{ padding: "15px", borderRadius: "var(--radius-md)", border: "1px solid #f1f5f9", boxShadow: "var(--shadow-sm)" }}>
+            <div className="total-value" style={{ fontSize: "1.4rem", color: `var(--${columnClasses[c].replace("col-", "col-")})` }}>
               {totals[c]}
             </div>
-            <div className="total-label" style={{ fontSize: "0.7rem", letterSpacing: "1.5px" }}>{columnLabels[c]}</div>
+            <div className="total-label" style={{ fontSize: "0.6rem", letterSpacing: "1.2px" }}>{columnLabels[c]}</div>
           </div>
         ))}
       </div>
@@ -315,7 +315,7 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
             }}
             onDrop={(e) => { e.currentTarget.classList.remove("drag-over"); handleDrop(e, col); }}
           >
-            <div className="col-header" style={{ padding: "15px", letterSpacing: "1px", fontSize: "0.8rem" }}>{columnLabels[col]}</div>
+            <div className="col-header" style={{ padding: "10px", letterSpacing: "0.8px", fontSize: "0.75rem" }}>{columnLabels[col]}</div>
             <div className="col-content">
               {filtered
                 .filter((t) => {
