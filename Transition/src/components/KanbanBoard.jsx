@@ -118,7 +118,7 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
     const input = document.getElementById(inputId);
     const text = input?.value?.trim();
     if (!text) return;
-    addNoteToTask({ taskId, noteText: text });
+    addNoteToTask({ taskId, noteText: text, writer: userName });
     input.value = "";
   }
 
