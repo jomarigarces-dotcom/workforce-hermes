@@ -43,6 +43,8 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
     if (!assigneeVal.includes(userNameVal)) canEditMilestone = false;
   }
 
+  const canManageFeatures = actualRole === "Admin" || canEditMilestone;
+
   function toggleAssignee(name) {
     setSelectedAssignees((prev) => {
       const next = new Set(prev);
@@ -146,7 +148,7 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
                   </span>
                 )}
               </div>
-              {canEditMilestone && (
+              {canManageFeatures && (
                 <button className="btn-add-feature" onClick={() => setFeatureModalConfig({ mode: "add" })}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                     <path d="M12 5v14M5 12h14"/>
@@ -411,7 +413,7 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
           feature={featureModalConfig.feature}
           taskId={taskId}
           onClose={() => setFeatureModalConfig(null)}
-          canEdit={canEditMilestone}
+          canEdit={canManageFeatures}
           userName={userName}
         />
       )}
