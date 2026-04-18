@@ -15,6 +15,11 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
   const [editedTitle, setEditedTitle] = useState("");
   const [editedDesc, setEditedDesc] = useState("");
   const [featureModalConfig, setFeatureModalConfig] = useState(null);
+  const [featureContextMenu, setFeatureContextMenu] = useState(null);
+  const [editedMilestones, setEditedMilestones] = useState([]);
+  const [draggedEditMilestoneIdx, setDraggedEditMilestoneIdx] = useState(null);
+
+  const deleteTaskFeature = useMutation(api.tasks.deleteTaskFeature);
 
   const task = tasks?.find((t) => t._id === taskId);
 
@@ -27,8 +32,19 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
         .map((s) => s.trim())
         .filter((s) => s);
       setSelectedAssignees(new Set(initialAssignees));
+      if (isEditMode) {
+        setEditedMilestones(task.milestones ? [...task.milestones] : []);
+      }
     }
   }, [task, isEditMode]);
+
+  useEffect(() => {
+    function handleClick() {
+      if (featureContextMenu) setFeatureContextMenu(null);
+    }
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
+  }, [featureContextMenu]);
 
   if (!tasks || !task) return null;
 
@@ -90,19 +106,12 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
   }
 
   function handleSaveEdits() {
-    const items = document.querySelectorAll(`#milestone-list-edit .edit-mode-item`);
-    const newMilestones = [];
-    items.forEach((item, idx) => {
-      const nameInput = item.querySelector(".edit-m-name");
-      const daysInput = item.querySelector(".edit-m-days");
-      const oldM = milestones[idx];
-      newMilestones.push({
-        name: nameInput.value.trim() || "Unnamed",
-        days: parseInt(daysInput.value) || 0,
-        completed: oldM && nameInput.value.trim() === oldM.name ? (oldM.completed || false) : false,
-        completedAt: oldM && nameInput.value.trim() === oldM.name ? oldM.completedAt : undefined,
-      });
-    });
+    const newMilestones = editedMilestones.map((m) => ({
+      name: m.name.trim() || "Unnamed",
+      days: parseInt(m.days) || 0,
+      completed: m.completed || false,
+      completedAt: m.completedAt,
+    }));
 
     updateTaskDetails({ 
       taskId, 
@@ -115,21 +124,30 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
   }
 
   function appendEditableMilestone() {
-    const list = document.getElementById("milestone-list-edit");
-    if (!list) return;
-    const div = document.createElement("div");
-    div.className = "milestone-list-item edit-mode-item";
-    div.style.padding = "10px";
-    div.style.gap = "10px";
-    div.innerHTML = `
-      <div class="milestone-list-content">
-        <div class="milestone-name-row" style="gap:10px;">
-          <input type="text" class="form-input edit-m-name" placeholder="Milestone Name" style="flex:2; padding:4px 8px; font-size:0.8rem;" />
-          <input type="number" class="form-input edit-m-days" placeholder="Days" style="flex:1; padding:4px 8px; font-size:0.8rem;" />
-          <button type="button" class="btn-remove-milestone" style="padding:4px 8px; font-size:0.8rem;" onclick="this.closest('.edit-mode-item').remove()">×</button>
-        </div>
-      </div>`;
-    list.appendChild(div);
+    setEditedMilestones([...editedMilestones, { name: "", days: 0 }]);
+  }
+
+  function handleFeatureContextMenu(e, f) {
+    if (!canManageFeatures) return;
+    e.preventDefault();
+    setFeatureContextMenu({ x: e.clientX, y: e.clientY, feature: f });
+  }
+
+  function handleFeatureEdit(f) {
+    setFeatureModalConfig({ mode: "edit", feature: f });
+    setFeatureContextMenu(null);
+  }
+
+  function handleFeatureDelete(f) {
+    showModal({
+      title: "Delete Feature",
+      message: `Are you sure you want to permanently delete the feature "${f.name}"?`,
+      type: "confirm",
+      onConfirm: () => {
+        deleteTaskFeature({ taskId, featureId: f.id });
+      }
+    });
+    setFeatureContextMenu(null);
   }
 
   return (
@@ -164,6 +182,7 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
                   key={f.id} 
                   className={`feature-card ${f.status === 'completed' ? 'completed' : ''}`}
                   onClick={() => setFeatureModalConfig({ mode: "view", feature: f })}
+                  onContextMenu={(e) => handleFeatureContextMenu(e, f)}
                 >
                   <div className="feature-icon-box">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -290,24 +309,77 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
 
             <div className="milestone-scroll-area" style={{ overflowY: "auto", paddingRight: "5px", marginTop: "10px" }}>
               <div className="milestone-vertical-list" id="milestone-list-edit" style={{ marginTop: 10 }}>
-                {milestones.map((m, idx) => {
-                  if (isEditMode) {
-                    return (
-                      <div key={idx} className="milestone-list-item edit-mode-item" style={{ padding: 10, gap: 10 }}>
+                {isEditMode ? (
+                  <>
+                    {editedMilestones.map((m, idx) => (
+                      <div 
+                        key={idx} 
+                        className="milestone-list-item edit-mode-item" 
+                        style={{ padding: 10, gap: 10, cursor: "grab" }}
+                        draggable
+                        onDragStart={(e) => { e.stopPropagation(); setDraggedEditMilestoneIdx(idx); }}
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (draggedEditMilestoneIdx === null || draggedEditMilestoneIdx === idx) return;
+                          const next = [...editedMilestones];
+                          const [moved] = next.splice(draggedEditMilestoneIdx, 1);
+                          next.splice(idx, 0, moved);
+                          setEditedMilestones(next);
+                          setDraggedEditMilestoneIdx(null);
+                        }}
+                      >
+                        <div className="drag-handle" style={{ fontSize: "1rem", color: "#94a3b8" }}>⋮⋮</div>
                         <div className="milestone-list-content">
                           <div className="milestone-name-row" style={{ gap: 10 }}>
-                            <input type="text" className="form-input edit-m-name" defaultValue={m.name} placeholder="Milestone Name" style={{ flex: 2, padding: "4px 8px", fontSize: "0.8rem" }} />
-                            <input type="number" className="form-input edit-m-days" defaultValue={m.days} placeholder="Days" style={{ flex: 1, padding: "4px 8px", fontSize: "0.8rem" }} />
-                            <button type="button" className="btn-remove-milestone" style={{ padding: "4px 8px", fontSize: "0.8rem" }} onClick={(e) => e.currentTarget.closest(".edit-mode-item").remove()}>
+                            <input 
+                              type="text" 
+                              className="form-input edit-m-name" 
+                              value={m.name} 
+                              onChange={(e) => {
+                                const next = [...editedMilestones];
+                                next[idx].name = e.target.value;
+                                setEditedMilestones(next);
+                              }}
+                              placeholder="Milestone Name" 
+                              style={{ flex: 2, padding: "4px 8px", fontSize: "0.8rem" }} 
+                            />
+                            <input 
+                              type="number" 
+                              className="form-input edit-m-days" 
+                              value={m.days} 
+                              onChange={(e) => {
+                                const next = [...editedMilestones];
+                                next[idx].days = e.target.value;
+                                setEditedMilestones(next);
+                              }}
+                              placeholder="Days" 
+                              style={{ flex: 1, padding: "4px 8px", fontSize: "0.8rem" }} 
+                            />
+                            <button type="button" className="btn-remove-milestone" style={{ padding: "4px 8px", fontSize: "0.8rem" }} onClick={() => {
+                              const next = [...editedMilestones];
+                              next.splice(idx, 1);
+                              setEditedMilestones(next);
+                            }}>
                               ×
                             </button>
                           </div>
                         </div>
                       </div>
-                    );
-                  }
-
-                  let status = "waiting";
+                    ))}
+                    <button 
+                      type="button" 
+                      className="btn-primary" 
+                      style={{ marginTop: 10, alignSelf: "flex-start", width: "auto", padding: "6px 12px", fontSize: "0.75rem", background: "white", color: "var(--color-nav-bg)", border: "2px dashed #cbd5e1" }} 
+                      onClick={appendEditableMilestone}
+                    >
+                      + ADD MILESTONE
+                    </button>
+                  </>
+                ) : (
+                  milestones.map((m, idx) => {
+                    let status = "waiting";
                   const firstIncompleteIdx = milestones.findIndex((ms) => !ms.completed);
                   if (m.completed) status = "completed";
                   else if (idx === firstIncompleteIdx) status = "active";
@@ -344,7 +416,7 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
                       </div>
                     </div>
                   );
-                })}
+                }))}
               </div>
             </div>
 
@@ -416,6 +488,13 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
           canEdit={canManageFeatures}
           userName={userName}
         />
+      )}
+
+      {featureContextMenu && (
+        <div style={{ position: "fixed", top: featureContextMenu.y, left: featureContextMenu.x, background: "white", padding: "5px 0", borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 9999, border: "1px solid #e2e8f0", minWidth: 140 }}>
+          <button style={{ width: "100%", padding: "8px 15px", textAlign: "left", background: "none", border: "none", fontSize: "0.8rem", cursor: "pointer", display: "block", color: "#1e293b", fontWeight: 700 }} onClick={() => handleFeatureEdit(featureContextMenu.feature)}>Edit Feature</button>
+          <button style={{ width: "100%", padding: "8px 15px", textAlign: "left", background: "none", border: "none", fontSize: "0.8rem", cursor: "pointer", display: "block", color: "#ef4444", fontWeight: 700 }} onClick={() => handleFeatureDelete(featureContextMenu.feature)}>Delete Feature</button>
+        </div>
       )}
     </div>
   );

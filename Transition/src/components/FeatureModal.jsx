@@ -18,11 +18,17 @@ export default function FeatureModal({ mode, feature, taskId, onClose, canEdit, 
 
   const generateUploadUrl = useMutation(api.tasks.generateUploadUrl);
   const addTaskFeature = useMutation(api.tasks.addTaskFeature);
-  const updateFeatureStatus = useMutation(api.tasks.updateFeatureStatus);
+  const updateTaskFeature = useMutation(api.tasks.updateTaskFeature);
 
-  // If viewing, we might need to fetch the image URLs from storage IDs
+  // If viewing or editing, we might need to fetch the image URLs from storage IDs
   // We'll only run the query if there are storageIds
-  const storageIds = feature?.imageStorageIds || [];
+  const initialStorageIds = feature?.imageStorageIds || [];
+  const imageUrls = useQuery(api.tasks.getFeatureImageUrls, initialStorageIds.length > 0 ? { storageIds: initialStorageIds } : "skip");
+
+  const [retainedStorageIds, setRetainedStorageIds] = useState(initialStorageIds);
+  
+  // When imageUrls loads, we need a way to link retainedStorageIds to their URLs for preview
+  const [removedExistingIndexes, setRemovedExistingIndexes] = useState(new Set());
   const imageUrls = useQuery(api.tasks.getFeatureImageUrls, storageIds.length > 0 ? { storageIds } : "skip");
 
   // Cleanup object URLs for previews
@@ -32,8 +38,9 @@ export default function FeatureModal({ mode, feature, taskId, onClose, canEdit, 
 
   function handleFileChange(e) {
     const selectedFiles = Array.from(e.target.files);
-    if (selectedFiles.length + files.length > 3) {
-      alert("You can only attach up to 3 images.");
+    const existingCount = retainedStorageIds.length - removedExistingIndexes.size;
+    if (selectedFiles.length + files.length + existingCount > 3) {
+      alert("You can only attach up to 3 images total.");
       return;
     }
     const newFiles = [...files, ...selectedFiles];
@@ -44,6 +51,14 @@ export default function FeatureModal({ mode, feature, taskId, onClose, canEdit, 
     setPreviews(prev => [...prev, ...newPreviews]);
   }
 
+  function removeExistingImage(index) {
+    setRemovedExistingIndexes(prev => {
+      const next = new Set(prev);
+      next.add(index);
+      return next;
+    });
+  }
+
   function removeFile(index) {
     setFiles(prev => prev.filter((_, i) => i !== index));
     setPreviews(prev => {
@@ -52,7 +67,7 @@ export default function FeatureModal({ mode, feature, taskId, onClose, canEdit, 
     });
   }
 
-  async function handleAddSubmit() {
+  async function handleAddOrUpdateSubmit() {
     if (!name.trim() || !description.trim()) {
       alert("Please provide a name and description.");
       return;
@@ -60,13 +75,11 @@ export default function FeatureModal({ mode, feature, taskId, onClose, canEdit, 
 
     setIsSubmitting(true);
     try {
-      const storageIds = [];
+      const finalStorageIds = initialStorageIds.filter((_, idx) => !removedExistingIndexes.has(idx));
 
-      // Upload each file
+      // Upload each new file
       for (const file of files) {
-        console.log("Generating upload URL for file:", file.name);
         const postUrl = await generateUploadUrl();
-        console.log("Uploading file to:", postUrl);
         const result = await fetch(postUrl, {
           method: "POST",
           headers: { "Content-Type": file.type },
@@ -79,27 +92,37 @@ export default function FeatureModal({ mode, feature, taskId, onClose, canEdit, 
         }
 
         const { storageId } = await result.json();
-        console.log("File uploaded successfully, storageId:", storageId);
-        storageIds.push(storageId);
+        finalStorageIds.push(storageId);
       }
 
-      console.log("Calling addTaskFeature mutation with:", { taskId, name, storageIds });
-      await addTaskFeature({
-        taskId,
-        feature: {
-          id: crypto.randomUUID(),
-          name,
-          description,
-          status: "pending",
-          suggestedBy: userName || "Anonymous",
-          imageStorageIds: storageIds
-        }
-      });
+      if (mode === "add") {
+        await addTaskFeature({
+          taskId,
+          feature: {
+            id: crypto.randomUUID(),
+            name,
+            description,
+            status: "pending",
+            suggestedBy: userName || "Anonymous",
+            imageStorageIds: finalStorageIds
+          }
+        });
+      } else if (mode === "edit") {
+        await updateTaskFeature({
+          taskId,
+          featureId: feature.id,
+          updates: {
+            name,
+            description,
+            imageStorageIds: finalStorageIds
+          }
+        });
+      }
 
       onClose();
     } catch (err) {
-      console.error("DEBUG - Feature Add Error:", err);
-      alert(`Failed to add feature: ${err.message || err.toString()}`);
+      console.error("DEBUG - Feature Submit Error:", err);
+      alert(`Failed to save feature: ${err.message || err.toString()}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -163,10 +186,10 @@ export default function FeatureModal({ mode, feature, taskId, onClose, canEdit, 
           <button className="modal-close" onClick={onClose}>×</button>
           
           <h2 style={{ margin: "0 0 20px 0", fontSize: "1.4rem", fontWeight: 900 }}>
-            {mode === "add" ? "Add New Feature" : "Feature Details"}
+            {mode === "add" ? "Add New Feature" : mode === "edit" ? "Edit Feature" : "Feature Details"}
           </h2>
 
-          {mode === "add" && (
+          {(mode === "add" || mode === "edit") && (
             <div>
               <div className="form-group">
                 <label className="form-label">Feature Name</label>
@@ -190,38 +213,50 @@ export default function FeatureModal({ mode, feature, taskId, onClose, canEdit, 
               </div>
               
               <div className="form-group">
-                <label className="form-label">Reference Images (Max 3)</label>
+                <label className="form-label">Reference Images (Max 3 total)</label>
                 <input 
                   type="file" 
                   accept="image/*" 
                   multiple 
                   onChange={handleFileChange} 
-                  disabled={files.length >= 3}
+                  disabled={files.length + (initialStorageIds.length - removedExistingIndexes.size) >= 3}
                   style={{ display: "block", marginBottom: 10, fontSize: "0.8rem" }}
                 />
                 
-                {previews.length > 0 && (
-                  <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                    {previews.map((src, idx) => (
-                      <div key={idx} style={{ position: "relative", width: 100, height: 100, borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                        <img src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                  {/* Show retained existing images */}
+                  {mode === "edit" && imageUrls && imageUrls.map((url, idx) => (
+                    !removedExistingIndexes.has(idx) && (
+                      <div key={`existing-${idx}`} style={{ position: "relative", width: 100, height: 100, borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                        <img src={url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         <button 
-                          onClick={() => removeFile(idx)}
+                          onClick={() => removeExistingImage(idx)}
                           style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.5)", color: "white", border: "none", borderRadius: "50%", width: 20, height: 20, cursor: "pointer", fontSize: "0.6rem" }}
                         >×</button>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    )
+                  ))}
+
+                  {/* Show new previews */}
+                  {previews.map((src, idx) => (
+                    <div key={`new-${idx}`} style={{ position: "relative", width: 100, height: 100, borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                      <img src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <button 
+                        onClick={() => removeFile(idx)}
+                        style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.5)", color: "white", border: "none", borderRadius: "50%", width: 20, height: 20, cursor: "pointer", fontSize: "0.6rem" }}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <button 
                 className="btn-primary" 
-                onClick={handleAddSubmit} 
+                onClick={handleAddOrUpdateSubmit} 
                 disabled={isSubmitting}
                 style={{ marginTop: 20 }}
               >
-                {isSubmitting ? "ADDING..." : "ADD FEATURE"}
+                {isSubmitting ? "SAVING..." : mode === "edit" ? "SAVE CHANGES" : "ADD FEATURE"}
               </button>
             </div>
           )}
@@ -261,7 +296,7 @@ export default function FeatureModal({ mode, feature, taskId, onClose, canEdit, 
                 </div>
               </div>
 
-              {storageIds.length > 0 && (
+              {initialStorageIds.length > 0 && (
                 <div>
                   <h4 style={{ margin: "0 0 10px 0", fontSize: "0.75rem", textTransform: "uppercase", color: "#64748b", fontWeight: 800 }}>Reference Images</h4>
                   {imageUrls === undefined ? (

@@ -307,3 +307,44 @@ export const updateFeatureStatus = mutation({
     await ctx.db.patch(args.taskId, updates);
   },
 });
+
+export const updateTaskFeature = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    featureId: v.string(),
+    updates: v.object({
+      name: v.string(),
+      description: v.string(),
+      imageStorageIds: v.optional(v.array(v.string())),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
+
+    const features = [...(task.features || [])];
+    const featIndex = features.findIndex(f => f.id === args.featureId);
+    if (featIndex === -1) return;
+
+    features[featIndex] = {
+      ...features[featIndex],
+      ...args.updates,
+    };
+
+    await ctx.db.patch(args.taskId, { features, lastUpdated: Date.now() });
+  },
+});
+
+export const deleteTaskFeature = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    featureId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
+
+    const features = (task.features || []).filter(f => f.id !== args.featureId);
+    await ctx.db.patch(args.taskId, { features, lastUpdated: Date.now() });
+  },
+});
