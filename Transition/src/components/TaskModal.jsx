@@ -234,15 +234,13 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
           <div className="features-sidebar" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
             <div className="features-header" style={{ flexShrink: 0, paddingBottom: 12, borderBottom: "1px solid #f1f5f9", marginBottom: 14 }}>
 
-              {/* ── Segmented Toggle ── */}
-              <div className="taskmodal-segmented-toggle" role="tablist" aria-label="Feature view switch">
-                <div className={`taskmodal-segmented-pill ${featureView === "bug" ? "bug" : "feature"}`} />
-
+              {/* ── View Tabs ── */}
+              <div className="taskmodal-tabs" role="tablist" aria-label="Feature view tabs">
                 <button
                   type="button"
                   role="tab"
                   aria-selected={featureView === "feature"}
-                  className={`segmented-toggle-btn ${featureView === "feature" ? "active" : ""}`}
+                  className={`taskmodal-tab ${featureView === "feature" ? "active" : ""}`}
                   onClick={() => setFeatureView("feature")}
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
@@ -255,7 +253,7 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
                   type="button"
                   role="tab"
                   aria-selected={featureView === "bug"}
-                  className={`segmented-toggle-btn ${featureView === "bug" ? "active" : ""}`}
+                  className={`taskmodal-tab ${featureView === "bug" ? "active" : ""}`}
                   onClick={() => setFeatureView("bug")}
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
