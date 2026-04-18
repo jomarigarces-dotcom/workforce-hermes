@@ -385,6 +385,9 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
                           style={{ fontSize: "1.1rem", color: "#94a3b8", cursor: "grab", padding: "0 6px", flexShrink: 0, userSelect: "none", touchAction: "none" }}
                           onPointerDown={(e) => {
                             e.preventDefault();
+                            // Release implicit pointer capture so pointermove fires
+                            // on whatever element the cursor is over (and bubbles to window)
+                            e.currentTarget.releasePointerCapture(e.pointerId);
                             startMilestoneDrag(idx);
                           }}
                         >⋮⋮</div>
