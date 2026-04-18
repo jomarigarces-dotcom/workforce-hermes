@@ -70,7 +70,8 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
     const isNowCompleted = !updated[idx].completed;
     updated[idx].completed = isNowCompleted;
     if (isNowCompleted) {
-      updated[idx].completedAt = new Date().toLocaleString([], {
+      updated[idx].completedAt = new Date().toLocaleString("en-US", {
+        timeZone: "America/New_York",
         year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
       });
     } else {
