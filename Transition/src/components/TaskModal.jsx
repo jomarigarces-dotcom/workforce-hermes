@@ -235,41 +235,15 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
             <div className="features-header" style={{ flexShrink: 0, paddingBottom: 12, borderBottom: "1px solid #f1f5f9", marginBottom: 14 }}>
 
               {/* ── Segmented Toggle ── */}
-              <div style={{
-                position: "relative", display: "flex",
-                background: "#eef2f7", borderRadius: "12px",
-                padding: "3px", marginBottom: "16px",
-                overflow: "hidden",   /* clips any subpixel pill overshoot */
-              }}>
-                {/* Pill: animates `left` directly so no transform percentage rounding */}
-                <div style={{
-                  position: "absolute",
-                  top: "3px", bottom: "3px",
-                  left: featureView === "feature" ? "3px" : "50%",
-                  width: "calc(50% - 3px)",
-                  background: featureView === "bug"
-                    ? "linear-gradient(135deg, #ef4444, #dc2626)"
-                    : "var(--color-nav-bg, #1e293b)",
-                  borderRadius: "9px",
-                  transition: "left 0.28s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease",
-                  boxShadow: featureView === "bug"
-                    ? "0 2px 8px rgba(220,38,38,0.4)"
-                    : "0 2px 8px rgba(15,23,42,0.3)",
-                  zIndex: 1,
-                }} />
+              <div className="taskmodal-segmented-toggle" role="tablist" aria-label="Feature view switch">
+                <div className={`taskmodal-segmented-pill ${featureView === "bug" ? "bug" : "feature"}`} />
 
                 <button
+                  type="button"
+                  role="tab"
+                  aria-selected={featureView === "feature"}
+                  className={`segmented-toggle-btn ${featureView === "feature" ? "active" : ""}`}
                   onClick={() => setFeatureView("feature")}
-                  style={{
-                    flex: 1, position: "relative", zIndex: 2,
-                    padding: "9px 0",
-                    border: "none", cursor: "pointer", background: "transparent",
-                    color: featureView === "feature" ? "white" : "#94a3b8",
-                    fontSize: "0.7rem", fontWeight: 700,
-                    transition: "color 0.25s ease",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                    userSelect: "none",
-                  }}
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -278,17 +252,11 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
                 </button>
 
                 <button
+                  type="button"
+                  role="tab"
+                  aria-selected={featureView === "bug"}
+                  className={`segmented-toggle-btn ${featureView === "bug" ? "active" : ""}`}
                   onClick={() => setFeatureView("bug")}
-                  style={{
-                    flex: 1, position: "relative", zIndex: 2,
-                    padding: "9px 0",
-                    border: "none", cursor: "pointer", background: "transparent",
-                    color: featureView === "bug" ? "white" : "#94a3b8",
-                    fontSize: "0.7rem", fontWeight: 700,
-                    transition: "color 0.25s ease",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                    userSelect: "none",
-                  }}
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
                     <circle cx="12" cy="12" r="4" />
