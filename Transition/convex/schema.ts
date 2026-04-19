@@ -20,6 +20,7 @@ export default defineSchema({
       v.object({
         text: v.string(),
         date: v.string(),
+        timestamp: v.optional(v.number()),
         writer: v.optional(v.string()),
       })
     ),
@@ -38,7 +39,9 @@ export default defineSchema({
           imageStorageIds: v.optional(v.array(v.string())),
           type: v.optional(v.string()),
           createdAt: v.optional(v.string()),
+          createdAtTime: v.optional(v.number()),
           completedAt: v.optional(v.string()),
+          completedAtTime: v.optional(v.number()),
         })
       )
     ),

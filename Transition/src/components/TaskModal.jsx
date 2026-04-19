@@ -44,10 +44,12 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
       }
       // Mark task as viewed when modal opens (only for programmers)
       if (actualRole === "Programmer") {
-        markTaskAsViewed({ taskId, userEmail: localStorage.getItem("wf_email") || "" });
+        const userEmail = localStorage.getItem("wf_email") || "";
+        console.log("👁️ Marking task as viewed:", { taskId, actualRole, userEmail });
+        markTaskAsViewed({ taskId, userEmail });
       }
     }
-  }, [task?._id, isEditMode, actualRole]);
+  }, [task?._id, isEditMode, actualRole, markTaskAsViewed, taskId]);
 
   if (!tasks || !task) return null;
 
@@ -66,24 +68,42 @@ export default function TaskModal({ taskId, isEditMode, userRole, actualRole, us
   const isProgrammer = actualRole === "Programmer";
 
   // Calculate new notifications since last viewed (only for programmers)
-  const lastViewedTime = isProgrammer ? (getTaskViewHistory || 0) : 0;
+  const lastViewedTime = isProgrammer && getTaskViewHistory ? getTaskViewHistory : 0;
   
   const newNotes = isProgrammer ? (task.notes || []).filter((n) => {
-    const noteTime = new Date(n.date).getTime();
+    const noteTime = n.timestamp || 0;
     return noteTime > lastViewedTime;
   }).length : 0;
 
   const newFeatures = isProgrammer ? (task.features || []).filter((f) => {
     if ((f.type || "feature") !== "feature") return false;
-    const featureTime = new Date(f.createdAt || "").getTime() || 0;
+    const featureTime = f.createdAtTime || 0;
     return featureTime > lastViewedTime;
   }).length : 0;
 
   const newBugs = isProgrammer ? (task.features || []).filter((f) => {
     if ((f.type || "feature") !== "bug") return false;
-    const featureTime = new Date(f.createdAt || "").getTime() || 0;
+    const featureTime = f.createdAtTime || 0;
     return featureTime > lastViewedTime;
   }).length : 0;
+
+  // Debug logging
+  useEffect(() => {
+    if (isProgrammer) {
+      console.log("📊 BADGE DEBUG:", {
+        isProgrammer,
+        lastViewedTime,
+        taskNotesCount: (task.notes || []).length,
+        taskFeaturesCount: (task.features || []).filter(f => (f.type || "feature") === "feature").length,
+        taskBugsCount: (task.features || []).filter(f => (f.type || "feature") === "bug").length,
+        newNotes,
+        newFeatures,
+        newBugs,
+        notes: (task.notes || []).slice(0, 3).map((n, i) => ({ i, timestamp: n.timestamp, text: n.text?.slice(0, 20) })),
+        features: (task.features || []).slice(0, 3).map((f, i) => ({ i, type: f.type, createdAtTime: f.createdAtTime, name: f.name })),
+      });
+    }
+  }, [task, isProgrammer, lastViewedTime, newNotes, newFeatures, newBugs]);
 
   function toggleAssignee(name) {
     setSelectedAssignees((prev) => {

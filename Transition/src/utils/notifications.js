@@ -2,29 +2,37 @@
 
 export const initNotifications = () => {
   if (!("Notification" in window)) {
-    console.log("This browser does not support notifications");
+    console.warn("This browser does not support notifications");
     return;
   }
 
   if (Notification.permission === "granted") {
+    console.log("Notifications already permitted");
     return;
   }
 
   if (Notification.permission !== "denied") {
     Notification.requestPermission().then((permission) => {
+      console.log("Notification permission result:", permission);
       if (permission === "granted") {
         console.log("Notification permission granted");
       }
     });
+  } else {
+    console.warn("Notification permission was denied");
   }
 };
 
 export const sendNotification = (title, options = {}) => {
+  console.log("🔔 sendNotification called:", { title, hasNotificationAPI: "Notification" in window, permission: "Notification" in window ? Notification.permission : "N/A" });
+  
   if (!("Notification" in window)) {
+    console.warn("❌ Browser does not support Notification API");
     return;
   }
 
   if (Notification.permission !== "granted") {
+    console.warn(`❌ Notification permission not granted (status: ${Notification.permission})`);
     return;
   }
 
@@ -36,6 +44,7 @@ export const sendNotification = (title, options = {}) => {
   };
 
   try {
+    console.log("✅ Creating notification:", title);
     new Notification(title, defaultOptions);
   } catch (err) {
     console.error("Failed to send notification:", err);

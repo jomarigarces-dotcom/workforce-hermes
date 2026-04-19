@@ -155,6 +155,7 @@ export const addNoteToTask = mutation({
     notes.push({
       text: args.noteText,
       date: args.date,
+      timestamp: Date.now(),
       writer: args.writer,
     });
 
@@ -279,6 +280,7 @@ export const addTaskFeature = mutation({
         timeZone: "America/New_York",
         year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
       }),
+      createdAtTime: Date.now(),
     };
     features.push(featureWithTimestamp);
     await ctx.db.patch(args.taskId, { features, lastUpdated: Date.now() });
@@ -309,8 +311,10 @@ export const updateFeatureStatus = mutation({
         timeZone: "America/New_York",
         year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
       });
+      features[featIndex].completedAtTime = Date.now();
     } else {
       delete features[featIndex].completedAt;
+      delete features[featIndex].completedAtTime;
     }
     
     await ctx.db.patch(args.taskId, updates);
