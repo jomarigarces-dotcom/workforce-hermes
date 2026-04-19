@@ -42,24 +42,71 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
   const isProgrammer = actualRole === "Programmer";
   const userEmail = localStorage.getItem("wf_email") || "";
   
+  console.log("🎯 KanbanBoard render:", { 
+    userRole, 
+    actualRole, 
+    isProgrammer,
+    shouldShowBadges: userRole === "Programmer" || actualRole === "Programmer",
+    tasksCount: displayTasks?.length || 0, 
+    storageRefresh 
+  });
+  
   // Helper to calculate badges for a single task
+  // Show badges if user is in Programmer view OR has Programmer role
   const getTaskBadges = (task) => {
-    if (!isProgrammer || !task) return { newNotes: 0, newFeatures: 0, newBugs: 0, hasBadges: false };
+    const canSeeBadges = userRole === "Programmer" || actualRole === "Programmer";
+    if (!canSeeBadges || !task) {
+      return { newNotes: 0, newFeatures: 0, newBugs: 0, hasBadges: false };
+    }
     
     // Get last view time from localStorage as fallback
     const storageKey = `task_viewed_${task._id}`;
     const lastViewedTime = parseInt(localStorage.getItem(storageKey) || "0", 10);
     
-    const newNotes = (task.notes || []).filter(n => (n.timestamp || 0) > lastViewedTime).length;
+    // For notes: include those with timestamp OR no timestamp (old notes are treated as old, only new timestamped ones count)
+    // Only count notes that have explicit timestamps and are newer than last view
+    const newNotes = (task.notes || []).filter(n => {
+      const noteTime = n.timestamp || 0; // Old notes without timestamps get 0, treated as very old
+      return noteTime > 0 && noteTime > lastViewedTime; // Only count if it has a timestamp AND is newer
+    }).length;
+    
     const newFeatures = (task.features || [])
-      .filter(f => (f.type || "feature") === "feature" && (f.createdAtTime || 0) > lastViewedTime).length;
+      .filter(f => {
+        if ((f.type || "feature") !== "feature") return false;
+        const featureTime = f.createdAtTime || 0;
+        return featureTime > 0 && featureTime > lastViewedTime;
+      }).length;
+      
     const newBugs = (task.features || [])
-      .filter(f => (f.type || "feature") === "bug" && (f.createdAtTime || 0) > lastViewedTime).length;
+      .filter(f => {
+        if ((f.type || "feature") !== "bug") return false;
+        const featureTime = f.createdAtTime || 0;
+        return featureTime > 0 && featureTime > lastViewedTime;
+      }).length;
     
     const hasBadges = newNotes > 0 || newFeatures > 0 || newBugs > 0;
-    console.log(`📌 Badge calc for ${task._id}:`, { newNotes, newFeatures, newBugs, hasBadges, lastViewedTime });
+    const total = newNotes + newFeatures + newBugs;
     
-    return { newNotes, newFeatures, newBugs, hasBadges, total: newNotes + newFeatures + newBugs };
+    if (hasBadges || total > 0) {
+      console.log(`📌 Badge calc for ${task.title} (${task._id}):`, { 
+        hasBadges, 
+        total,
+        lastViewedTime,
+        lastViewString: new Date(lastViewedTime).toLocaleString(),
+        notesCount: (task.notes || []).length,
+        notesDetail: (task.notes || []).map(n => ({ 
+          text: n.text?.slice(0,15), 
+          hasTimestamp: !!n.timestamp,
+          timestamp: n.timestamp,
+          isNew: (n.timestamp || 0) > lastViewedTime
+        })),
+        newNotes, 
+        newFeatures, 
+        newBugs,
+      });
+    }
+    
+    return { newNotes, newFeatures, newBugs, hasBadges, total };
   };
   
   // Body scroll lock for full column view
@@ -74,6 +121,7 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
   useEffect(() => {
     if (Array.isArray(tasks) && tasks.length > 0) {
       setLastKnownTasks(tasks);
+      console.log("📡 Tasks updated from server:", tasks.length, "tasks");
     }
   }, [tasks]);
 
@@ -226,7 +274,7 @@ export default function KanbanBoard({ userRole, actualRole, userName, openTaskMo
               #{(t._id || "").slice(-4).toUpperCase()}
             </div>
           </div>
-          {isProgrammer && getTaskBadges(t).hasBadges && (
+          {(userRole === "Programmer" || actualRole === "Programmer") && getTaskBadges(t).hasBadges && (
             <div style={{
               background: "#ef4444",
               color: "white",
